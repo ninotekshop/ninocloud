@@ -33,33 +33,14 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit(): Promise<void> {
     const schema = this.config.get<string>('database.schema', 'nino');
     const connectionString = this.config.getOrThrow<string>('database.url');
-    let poolConfig: any;
-    try {
-      const url = new URL(connectionString);
-      poolConfig = {
-        host: url.hostname,
-        port: Number(url.port) || 5432,
-        database: url.pathname.replace(/^\//, ''),
-        user: decodeURIComponent(url.username),
-        password: decodeURIComponent(url.password),
-        max: this.config.get<number>('database.poolMax', 20),
-        idleTimeoutMillis: 30_000,
-        connectionTimeoutMillis: 5_000,
-        ssl: { rejectUnauthorized: false },
-        options: `-c search_path=${schema},public`,
-      };
-    } catch (_) {
-      poolConfig = {
-        connectionString,
-        max: this.config.get<number>('database.poolMax', 20),
-        idleTimeoutMillis: 30_000,
-        connectionTimeoutMillis: 5_000,
-        ssl: { rejectUnauthorized: false },
-        options: `-c search_path=${schema},public`,
-      };
-    }
 
-    this.pool = new Pool(poolConfig);
+    this.pool = new Pool({
+      connectionString,
+      max: this.config.get<number>('database.poolMax', 20),
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 5_000,
+      options: `-c search_path=${schema},public`,
+    });
 
     this.pool.on('error', (err) => {
       // Kết nối rỗi bị server đóng (restart, timeout). pg tự thay thế; chỉ log.
