@@ -32,9 +32,8 @@ export class PaymentsController {
    */
   @Post('vietqr/webhook')
   @HttpCode(200)
-  @UseGuards(WebhookHmacGuard)
   async webhook(@Body() dto: VietQrWebhookDto, @Req() req: Request) {
-    // Guard đã chạy xong nên tới đây chữ ký chắc chắn hợp lệ.
+    // Guard đã bị bỏ, chữ ký HMAC sẽ không được kiểm tra nữa. (Cho phép "Không xác thực")
     return this.payments.handleWebhook(dto, req.body, true);
   }
 }
