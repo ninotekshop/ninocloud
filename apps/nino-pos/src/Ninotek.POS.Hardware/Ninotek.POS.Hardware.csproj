@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Ninotek.POS.Core\Ninotek.POS.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Bảng mã CP1258 (tiếng Việt cho máy in nhiệt) không có sẵn trong .NET Core.
+         Phải gọi Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
+         một lần lúc khởi động app. -->
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
+    <!-- Máy in / két tiền qua cổng COM -->
+    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+  </ItemGroup>
+</Project>

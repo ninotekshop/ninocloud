@@ -1,0 +1,42 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <!-- Cảnh báo = lỗi. Với phần mềm thu tiền thật, một warning bỏ qua
+         hôm nay là một hoá đơn sai vào tháng sau. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <!-- ================================================================
+         Tắt một số quy tắc ĐẶT TÊN của bộ phân tích .NET.
+
+         Các quy tắc về tính đúng đắn (null-safety, văn hoá số, tài nguyên
+         chưa giải phóng) vẫn giữ nguyên mức LỖI — xem .editorconfig.
+         Chỉ tắt những quy tắc về phong cách đặt tên, vì chúng mâu thuẫn
+         với ràng buộc thực tế của dự án.
+         ================================================================ -->
+
+    <!-- CA1707: cấm dấu gạch dưới trong tên thành viên.
+         Giá trị enum PHẢI khớp TỪNG KÝ TỰ với CHECK constraint của SQLite và
+         kiểu ENUM của PostgreSQL (DINE_IN, TAKE_AWAY, KITCHEN_STATUS...).
+         Đổi sang PascalCase là làm hỏng đồng bộ dữ liệu lên Cloud. -->
+    <!-- CA1711: cấm tên kiểu kết thúc bằng 'Queue'.
+         IPrintJobQueue đúng là một hàng đợi. Đổi tên chỉ làm code khó đọc hơn. -->
+    <!-- CA1000: cấm thành viên static trên kiểu generic.
+         LanResult&lt;T&gt;.Ok/Fail là mẫu factory quen thuộc, đọc rõ hơn nhiều
+         so với gọi constructor với năm tham số. -->
+    <!-- CA1848: bắt dùng LoggerMessage source-generator thay cho logger.LogXxx().
+         Quy tắc này dành cho đường đi ghi log hàng triệu dòng mỗi giây. LAN
+         server ghi vài dòng cho mỗi đơn hàng — một quán đông cũng chỉ vài trăm
+         đơn một ngày. Đánh đổi độ đọc lấy vi tối ưu ở đây là sai chỗ. -->
+    <NoWarn>$(NoWarn);CA1707;CA1711;CA1000;CA1848</NoWarn>
+
+    <Company>Ninotek - Cong nghe &amp; Giai phap so</Company>
+    <Product>Ninotek F&amp;B POS</Product>
+    <Copyright>Copyright © Ninotek</Copyright>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+</Project>

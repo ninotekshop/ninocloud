@@ -1,0 +1,936 @@
+openapi: 3.1.0
+
+info:
+  title: Ninotek F&B POS API
+  version: 1.0.0
+  description: |
+    Hợp đồng REST cho toàn hệ thống Ninotek F&B POS.
+
+    **Đây là nguồn sự thật duy nhất cho API.** Client C# (NinoPOS, qua NSwag) và
+    Dart (NinoOrder/NinoDash, qua openapi-generator) đều sinh code từ file này.
+    CI sẽ fail nếu implementation lệch khỏi contract.
+
+    ## Hai mặt phẳng API tách biệt
+
+    | | LAN API | Cloud API |
+    |---|---|---|
+    | Máy chủ | NinoPOS tự host (Kestrel) | NinoCloud (NestJS) |
+    | Địa chỉ | `http://<ip-máy-POS>:8080` | `https://api.ninotek.vn` |
+    | Client | NinoOrder (tablet nhân viên) | NinoPOS (sync), NinoDash |
+    | Xác thực | Device token cấp khi ghép nối | JWT Bearer |
+    | Yêu cầu Internet | **Không** — chạy hoàn toàn nội bộ | Có |
+
+    Khi mất Internet, LAN API vẫn phục vụ bình thường. Đây là nền tảng của
+    kiến trúc Offline-First.
+
+    ## Optimistic Locking
+
+    Mọi endpoint sửa dữ liệu đều nhận `rowVersion` mà client đọc được lúc đầu.
+    Nếu bản ghi đã bị người khác sửa, server trả **409 Conflict** kèm bản ghi
+    hiện tại để client hiển thị và cho người dùng quyết định.
+
+  contact:
+    name: Ninotek — Công nghệ & Giải pháp số
+    url: https://ninotek.vn
+  license:
+    name: Proprietary
+    url: https://ninotek.vn/license
+
+servers:
+  - url: http://{posHost}:8080
+    description: LAN API — NinoPOS tự host trong mạng nội bộ quán
+    variables:
+      posHost:
+        default: 192.168.1.10
+        description: IP LAN của máy thu ngân. NinoOrder tự dò qua mDNS.
+  - url: https://api.ninotek.vn
+    description: Cloud API — production
+  - url: https://staging-api.ninotek.vn
+    description: Cloud API — staging
+
+tags:
+  - name: LAN — Bàn
+    description: Sơ đồ bàn thời gian thực trong mạng nội bộ
+  - name: LAN — Order
+    description: Nhân viên gửi order từ tablet về máy thu ngân
+  - name: LAN — Bếp
+    description: Cập nhật trạng thái chế biến (KDS)
+  - name: LAN — Thiết bị
+    description: Ghép nối tablet với máy POS
+  - name: Cloud — Xác thực
+    description: Đăng nhập, JWT, refresh token
+  - name: Cloud — Đồng bộ
+    description: Đẩy sync_queue từ NinoPOS lên Cloud theo FIFO
+  - name: Cloud — Thanh toán
+    description: VietQR động và webhook ngân hàng
+  - name: Cloud — Báo cáo
+    description: Dữ liệu cho NinoDash
+  - name: Cloud — Bản quyền
+    description: Kích hoạt và đối soát License Key
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ==================================================================
+  # LAN API
+  # ==================================================================
+  /api/v1/lan/discovery:
+    get:
+      tags: [LAN — Thiết bị]
+      summary: Thông tin máy POS (dùng để tablet xác nhận đã tìm đúng máy)
+      description: |
+        Endpoint duy nhất KHÔNG cần xác thực. NinoOrder gọi sau khi dò mDNS
+        `_ninopos._tcp.local` để xác nhận đúng máy trước khi ghép nối.
+      security: []
+      operationId: lanDiscovery
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [storeName, storeCode, posVersion, protocolVersion]
+                properties:
+                  storeName: { type: string, example: Ninotek Coffee - Quy Nhon }
+                  storeCode: { type: string, example: QN01 }
+                  posVersion: { type: string, example: 1.0.0 }
+                  protocolVersion:
+                    type: integer
+                    example: 1
+                    description: Tablet có protocolVersion khác PHẢI báo người dùng cập nhật app.
+                  requiresPairing: { type: boolean }
+        '403':
+          description: Máy POS đang tắt chế độ cho phép ghép nối thiết bị mới
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/v1/lan/devices/pair:
+    post:
+      tags: [LAN — Thiết bị]
+      summary: Ghép nối tablet với máy POS
+      description: |
+        Thu ngân phải bấm duyệt trên màn hình NinoPOS thì thiết bị mới được cấp
+        token. Số thiết bị ghép nối đồng thời bị giới hạn bởi `licenses.max_devices`.
+      security: []
+      operationId: lanPairDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [deviceName, deviceType, pairingCode]
+              properties:
+                deviceName: { type: string, example: Tablet Tầng 1 }
+                deviceType: { type: string, enum: [TABLET, PHONE, KDS] }
+                pairingCode:
+                  type: string
+                  description: Mã 6 số hiển thị trên màn hình NinoPOS
+                  pattern: '^\d{6}$'
+      responses:
+        '200':
+          description: Ghép nối thành công
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deviceId, deviceToken]
+                properties:
+                  deviceId: { type: string, format: uuid }
+                  deviceToken: { type: string, description: Gửi kèm header Authorization ở mọi lời gọi LAN sau đó }
+        '403':
+          description: Sai mã ghép nối hoặc đã đạt giới hạn thiết bị của license
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/v1/lan/tables/status:
+    get:
+      tags: [LAN — Bàn]
+      summary: Sơ đồ bàn thời gian thực
+      operationId: lanGetTableStatus
+      parameters:
+        - name: areaId
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TableStatus' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/lan/tables/{tableId}/lock:
+    post:
+      tags: [LAN — Bàn]
+      summary: Chiếm quyền thao tác bàn (soft-lock 30 giây)
+      description: |
+        Chống hai nhân viên cùng sửa một bàn. Lock tự hết hạn sau 30 giây để
+        không bị kẹt khi tablet mất kết nối giữa chừng. Gọi lại để gia hạn.
+      operationId: lanLockTable
+      parameters:
+        - $ref: '#/components/parameters/TableId'
+      responses:
+        '200':
+          description: Đã chiếm lock
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  lockedUntil: { type: string, format: date-time }
+        '409':
+          description: Bàn đang bị nhân viên khác giữ
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/v1/lan/order/create:
+    post:
+      tags: [LAN — Order]
+      summary: Gửi order từ tablet về máy thu ngân
+      description: |
+        Đường đi nóng nhất của hệ thống — mục tiêu độ trễ **< 0.5 giây**.
+
+        `orderId` và mọi `orderDetailId` do **client sinh** (UUID v4) trước khi
+        gửi. Nhờ vậy khi mất LAN giữa chừng, tablet đệm đơn cục bộ rồi gửi lại
+        với cùng UUID; server nhận diện trùng và bỏ qua thay vì tạo đơn thứ hai.
+        Đây chính là khoá idempotency của endpoint này.
+      operationId: lanCreateOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateOrderRequest' }
+      responses:
+        '201':
+          description: Đã tạo đơn và đẩy lệnh in xuống bếp
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '200':
+          description: Đơn đã tồn tại (client gửi lại sau khi mất kết nối) — trả về đơn cũ, không tạo mới
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          description: Món đã hết hoặc bàn không ở trạng thái nhận order được
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/v1/lan/orders/{orderId}:
+    get:
+      tags: [LAN — Order]
+      summary: Chi tiết một đơn hàng
+      operationId: lanGetOrder
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/lan/orders/{orderId}/transfer:
+    post:
+      tags: [LAN — Order]
+      summary: Chuyển bàn / gộp bàn
+      operationId: lanTransferOrder
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetTableId, rowVersion]
+              properties:
+                targetTableId: { type: string, format: uuid }
+                mergeIfOccupied:
+                  type: boolean
+                  default: false
+                  description: true = gộp vào đơn đang mở ở bàn đích; false = từ chối nếu bàn đã có khách
+                rowVersion: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/lan/order-details/{orderDetailId}/kitchen-status:
+    patch:
+      tags: [LAN — Bếp]
+      summary: Cập nhật trạng thái chế biến món (từ màn hình KDS)
+      operationId: lanUpdateKitchenStatus
+      parameters:
+        - name: orderDetailId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kitchenStatus, rowVersion]
+              properties:
+                kitchenStatus: { $ref: '#/components/schemas/KitchenStatus' }
+                rowVersion: { type: integer }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OrderDetail' }
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/lan/menu:
+    get:
+      tags: [LAN — Order]
+      summary: Toàn bộ thực đơn (danh mục, món, topping)
+      description: |
+        NinoOrder cache lại kết quả và dùng `If-None-Match` để chỉ tải khi
+        thực đơn thực sự thay đổi — quan trọng vì tablet ở quán thường dùng
+        Wi-Fi yếu.
+      operationId: lanGetMenu
+      parameters:
+        - name: If-None-Match
+          in: header
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          headers:
+            ETag:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MenuSnapshot' }
+        '304':
+          description: Thực đơn chưa đổi — dùng bản cache
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ==================================================================
+  # CLOUD API
+  # ==================================================================
+  /api/v1/cloud/auth/login:
+    post:
+      tags: [Cloud — Xác thực]
+      summary: Đăng nhập, nhận JWT
+      security: []
+      operationId: cloudLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, format: password }
+                storeCode: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accessToken, refreshToken, expiresIn, user]
+                properties:
+                  accessToken: { type: string }
+                  refreshToken: { type: string }
+                  expiresIn: { type: integer, example: 900, description: Giây. Token ngắn hạn 15 phút. }
+                  user: { $ref: '#/components/schemas/User' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/cloud/sync/transactions:
+    post:
+      tags: [Cloud — Đồng bộ]
+      summary: Đẩy một lô bản ghi sync_queue lên Cloud
+      description: |
+        Windows Service trên máy POS gọi endpoint này theo **FIFO tuyệt đối**
+        (`ORDER BY sync_queue.id ASC`), mỗi lô tối đa 100 bản ghi.
+
+        **Bắt buộc idempotent**: cùng một `entityId` + `sourceRowVersion` gửi
+        lại nhiều lần phải cho cùng kết quả. Mạng ở quán chập chờn nên việc
+        gửi trùng là chuyện thường ngày, không phải ngoại lệ.
+
+        Server xử lý theo đúng thứ tự trong mảng và dừng ở bản ghi lỗi đầu
+        tiên, để client biết chính xác cần gửi lại từ đâu.
+      operationId: cloudSyncTransactions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [storeId, items]
+              properties:
+                storeId: { type: string, format: uuid }
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items: { $ref: '#/components/schemas/SyncQueueItem' }
+      responses:
+        '200':
+          description: Kết quả từng bản ghi
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results]
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      required: [queueId, status]
+                      properties:
+                        queueId: { type: integer, format: int64 }
+                        status: { type: string, enum: [SYNCED, CONFLICT, FAILED] }
+                        message: { type: string }
+                  lastSyncedQueueId:
+                    type: integer
+                    format: int64
+                    description: Bản ghi cuối cùng xử lý thành công. Client đánh dấu SYNCED tới mốc này.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/cloud/payments/vietqr/generate:
+    post:
+      tags: [Cloud — Thanh toán]
+      summary: Sinh mã VietQR động cho hoá đơn
+      description: |
+        Chuỗi trả về tuân thủ EMVCo + NAPAS VietQR/IBFT.
+
+        `addInfo` **phải** là `orders.order_code` (chỉ gồm `[A-Z0-9]`) vì đó là
+        khoá duy nhất để đối soát khi webhook ngân hàng báo về. Chuỗi có dấu
+        tiếng Việt hoặc ký tự đặc biệt sẽ bị chuẩn hoá; nếu mã đơn không sống
+        sót qua bước chuẩn hoá thì không thể đối soát tự động.
+
+        Bộ golden test vectors:
+        `packages/api-contracts/data/vietqr-test-vectors.json`
+      operationId: cloudGenerateVietQr
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VietQrGenerateRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VietQrGenerateResponse' }
+        '422':
+          description: Dữ liệu không hợp lệ (acqId sai, số tiền <= 0, ...)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/v1/cloud/payments/vietqr/webhook:
+    post:
+      tags: [Cloud — Thanh toán]
+      summary: Nhận IPN báo chuyển khoản thành công từ ngân hàng / cổng thanh toán
+      description: |
+        Gọi bởi Casso / SePay / cổng ngân hàng — **không phải** bởi app của Ninotek.
+
+        Ba quy tắc bắt buộc khi hiện thực:
+
+        1. **Xác thực HMAC-SHA256 trước khi đọc body.** Endpoint này public trên
+           Internet; không xác thực chữ ký nghĩa là ai cũng có thể giả lệnh
+           "đã thanh toán" và ăn hàng miễn phí.
+        2. **Đối soát mã đơn bằng regex, không so sánh `==`.** Ngân hàng chèn
+           thêm chữ vào nội dung chuyển khoản, ví dụ
+           `"MBVCB.9876543210.NINOPOS100234.CT tu 0123456789"`.
+        3. **Idempotent theo `transactionId`.** Ngân hàng bắn lại IPN khi chưa
+           nhận được 200. Ghi trùng = ghi nhận doanh thu hai lần.
+
+        Luôn trả 200 kể cả khi không khớp đơn nào, để cổng thanh toán không
+        retry vô hạn — ghi vào `payment_webhook_logs` rồi xử lý thủ công sau.
+      security:
+        - WebhookSignature: []
+      operationId: cloudVietQrWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VietQrWebhookPayload' }
+      responses:
+        '200':
+          description: Đã tiếp nhận (kể cả khi không khớp đơn nào)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received: { type: boolean }
+                  matchedOrderCode: { type: [string, 'null'] }
+        '401':
+          description: Chữ ký HMAC không hợp lệ
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/v1/cloud/reports/dashboard:
+    get:
+      tags: [Cloud — Báo cáo]
+      summary: Số liệu tổng quan cho NinoDash
+      operationId: cloudGetDashboard
+      parameters:
+        - name: storeId
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+        - name: from
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DashboardReport' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Vai trò hiện tại không được xem báo cáo doanh thu (WAITER, KITCHEN)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/v1/cloud/licenses/activate:
+    post:
+      tags: [Cloud — Bản quyền]
+      summary: Kích hoạt bản quyền cho một máy POS
+      description: |
+        NinoPOS xác thực chữ ký Ed25519 **offline** bằng public key nhúng sẵn,
+        nên vẫn bán hàng được khi mất mạng. Endpoint này dùng để ghi nhận lần
+        kích hoạt lên Cloud và cập nhật `last_verified_at` — mốc thời gian
+        chống khách hàng lùi đồng hồ Windows để dùng license đã hết hạn.
+      security: []
+      operationId: cloudActivateLicense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [licenseKey, machineId]
+              properties:
+                licenseKey: { type: string, example: 'NINO-PMRGI-ZLWEI-...' }
+                machineId: { type: string, description: SHA-256 của CPU ID + Mainboard SN + MAC }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid: { type: boolean }
+                  packageType: { type: string, enum: [TRIAL, BASIC, PRO, ENTERPRISE, LIFETIME] }
+                  expiryDate: { type: [string, 'null'], format: date }
+                  maxDevices: { type: integer }
+                  serverTime:
+                    type: string
+                    format: date-time
+                    description: NinoPOS lưu lại làm mốc chống lùi giờ hệ thống
+        '403':
+          description: License không hợp lệ, hết hạn hoặc đã bị thu hồi
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT ngắn hạn (15 phút) cho Cloud API; device token cho LAN API.
+    WebhookSignature:
+      type: apiKey
+      in: header
+      name: X-Signature
+      description: HMAC-SHA256 của raw body với secret chia sẻ với cổng thanh toán.
+
+  parameters:
+    TableId:
+      name: tableId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    Unauthorized:
+      description: Thiếu hoặc sai thông tin xác thực
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    NotFound:
+      description: Không tìm thấy
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Conflict:
+      description: |
+        Optimistic locking thất bại — bản ghi đã bị người khác sửa.
+        Body chứa `currentRowVersion` và bản ghi mới nhất để client hiển thị.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ConflictProblem' }
+
+  schemas:
+    Problem:
+      type: object
+      description: Lỗi theo chuẩn RFC 9457 (Problem Details for HTTP APIs).
+      required: [type, title, status]
+      properties:
+        type: { type: string, format: uri, example: 'https://ninotek.vn/errors/table-locked' }
+        title: { type: string, example: Bàn đang bị nhân viên khác thao tác }
+        status: { type: integer, example: 409 }
+        detail: { type: string }
+        instance: { type: string }
+        traceId: { type: string }
+
+    ConflictProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            currentRowVersion: { type: integer }
+            currentValue:
+              description: Bản ghi mới nhất trên server, để client hiển thị cho người dùng chọn.
+
+    TableStatus:
+      type: object
+      required: [id, name, areaId, status, rowVersion]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, example: Bàn 01 }
+        areaId: { type: string, format: uuid }
+        areaName: { type: string }
+        seatCapacity: { type: integer }
+        status: { type: string, enum: [EMPTY, OCCUPIED, RESERVED, BILLING, LOCKED] }
+        currentOrderId: { type: [string, 'null'], format: uuid }
+        guestCount: { type: [integer, 'null'] }
+        runningTotal: { type: [number, 'null'], description: 'Tạm tính, VND' }
+        seatedMinutes: { type: [integer, 'null'] }
+        lockedByUserId: { type: [string, 'null'], format: uuid }
+        lockedUntil: { type: [string, 'null'], format: date-time }
+        posX: { type: integer }
+        posY: { type: integer }
+        rowVersion: { type: integer }
+
+    CreateOrderRequest:
+      type: object
+      required: [orderId, userId, orderType, items]
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          description: UUID v4 do CLIENT sinh — đồng thời là khoá idempotency khi gửi lại.
+        tableId: { type: [string, 'null'], format: uuid }
+        userId: { type: string, format: uuid }
+        orderType: { type: string, enum: [DINE_IN, TAKE_AWAY, DELIVERY], default: DINE_IN }
+        guestCount: { type: integer, minimum: 1, default: 1 }
+        note: { type: string }
+        clientCreatedAt:
+          type: string
+          format: date-time
+          description: Thời điểm trên tablet. Giúp giữ đúng thứ tự khi nhiều đơn được đệm offline rồi gửi cùng lúc.
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [orderDetailId, itemId, quantity]
+            properties:
+              orderDetailId: { type: string, format: uuid, description: UUID v4 do client sinh }
+              itemId: { type: string, format: uuid }
+              quantity: { type: number, minimum: 0.01 }
+              note: { type: string, example: 'ít đường, không đá' }
+              toppings:
+                type: array
+                items:
+                  type: object
+                  required: [toppingId]
+                  properties:
+                    toppingId: { type: string, format: uuid }
+                    quantity: { type: integer, minimum: 1, default: 1 }
+
+    Order:
+      type: object
+      required: [id, orderCode, status, subtotal, finalTotal, rowVersion]
+      properties:
+        id: { type: string, format: uuid }
+        orderCode: { type: string, example: NINOPOS100234 }
+        tableId: { type: [string, 'null'], format: uuid }
+        tableName: { type: [string, 'null'] }
+        shiftId: { type: [string, 'null'], format: uuid }
+        userId: { type: string, format: uuid }
+        orderType: { type: string, enum: [DINE_IN, TAKE_AWAY, DELIVERY] }
+        status: { type: string, enum: [DRAFT, PENDING, SERVING, COMPLETED, CANCELLED] }
+        guestCount: { type: integer }
+        subtotal: { type: number }
+        discountAmount: { type: number }
+        serviceFee: { type: number }
+        vatAmount: { type: number }
+        finalTotal: { type: number }
+        paidAmount: { type: number }
+        note: { type: [string, 'null'] }
+        details:
+          type: array
+          items: { $ref: '#/components/schemas/OrderDetail' }
+        createdAt: { type: string, format: date-time }
+        completedAt: { type: [string, 'null'], format: date-time }
+        updatedAt: { type: string, format: date-time }
+        rowVersion: { type: integer }
+
+    OrderDetail:
+      type: object
+      required: [id, itemId, itemName, quantity, price, lineTotal, kitchenStatus, rowVersion]
+      properties:
+        id: { type: string, format: uuid }
+        itemId: { type: string, format: uuid }
+        itemName: { type: string, description: Chốt tại thời điểm order — món đổi tên sau đó không làm sai hoá đơn cũ }
+        quantity: { type: number }
+        price: { type: number, description: Đơn giá tại thời điểm order }
+        toppingTotal: { type: number }
+        discountAmount: { type: number }
+        lineTotal: { type: number, readOnly: true }
+        note: { type: [string, 'null'] }
+        kitchenStatus: { $ref: '#/components/schemas/KitchenStatus' }
+        printedAt: { type: [string, 'null'], format: date-time }
+        servedAt: { type: [string, 'null'], format: date-time }
+        toppings:
+          type: array
+          items:
+            type: object
+            properties:
+              toppingId: { type: string, format: uuid }
+              toppingName: { type: string }
+              extraPrice: { type: number }
+              quantity: { type: integer }
+        rowVersion: { type: integer }
+
+    KitchenStatus:
+      type: string
+      enum: [WAITING, COOKING, READY, SERVED, CANCELLED]
+
+    MenuSnapshot:
+      type: object
+      required: [categories, items, toppings, etag]
+      properties:
+        etag: { type: string }
+        categories:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              name: { type: string }
+              colorCode: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
+              sortOrder: { type: integer }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              categoryId: { type: string, format: uuid }
+              sku: { type: [string, 'null'] }
+              name: { type: string }
+              basePrice: { type: number }
+              unit: { type: string }
+              imageUrl: { type: [string, 'null'] }
+              printStation: { type: string, example: BAR }
+              isAvailable: { type: boolean, description: false = tạm hết món trong ngày }
+              allowedToppingIds:
+                type: array
+                items: { type: string, format: uuid }
+        toppings:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              name: { type: string }
+              extraPrice: { type: number }
+              groupName: { type: string, enum: [TOPPING, SUGAR, ICE, SIZE] }
+
+    SyncQueueItem:
+      type: object
+      required: [queueId, entityType, entityId, operation, payload]
+      properties:
+        queueId: { type: integer, format: int64, description: sync_queue.id — quyết định thứ tự FIFO }
+        entityType:
+          type: string
+          enum: [orders, order_details, order_detail_toppings, payments, payment_qr_sessions, stock_transactions, audit_logs, shifts, tables]
+        entityId: { type: string, format: uuid }
+        operation: { type: string, enum: [INSERT, UPDATE, DELETE] }
+        payload: { type: object, additionalProperties: true }
+        sourceRowVersion: { type: [integer, 'null'] }
+        sourceUpdatedAt: { type: [string, 'null'], format: date-time }
+
+    VietQrGenerateRequest:
+      type: object
+      required: [orderId, accountNo, accountName, acqId, amount, addInfo]
+      properties:
+        orderId: { type: string, format: uuid }
+        accountNo: { type: string, pattern: '^[A-Za-z0-9]{1,19}$', example: '0123456789' }
+        accountName: { type: string, example: CONG TY TNHH CONG NGHE & DICH VU NINOTEK }
+        acqId:
+          type: string
+          pattern: '^\d{6}$'
+          example: '970436'
+          description: Mã BIN ngân hàng. Tra trong packages/api-contracts/data/napas-bank-bins.json
+        amount: { type: integer, minimum: 1, maximum: 9999999999, example: 150000 }
+        addInfo:
+          type: string
+          maxLength: 95
+          example: NINOPOS100234
+          description: |
+            PHẢI là `orders.order_code`. Tối đa 95 ký tự (tag 62 của EMVCo giới hạn 99,
+            trừ 4 ký tự header của tag 08). Nhiều ngân hàng còn cắt quanh mốc 50 ký tự
+            khi bắn webhook, nên mã đơn phải nằm ở ĐẦU chuỗi.
+        template: { type: string, enum: [compact, qr_only, print], default: compact }
+
+    VietQrGenerateResponse:
+      type: object
+      required: [qrCode, qrDataURL, expiresAt]
+      properties:
+        qrSessionId: { type: string, format: uuid }
+        qrCode:
+          type: string
+          description: Chuỗi EMVCo thô, đã kèm CRC-16/CCITT-FALSE
+          example: 00020101021238540010A00000072701240006970436011001234567890208QRIBFTTA530370454061500005802VN62170813NINOPOS10023463048507
+        qrDataURL: { type: string, description: 'PNG dạng data:image/png;base64,...' }
+        expiresAt: { type: string, format: date-time }
+        websocketUrl:
+          type: string
+          example: ws://localhost:8080/ws/payments?order_id=NINOPOS100234
+          description: NinoPOS mở kênh này để nhận PAYMENT_SUCCESS và tự chốt bill.
+
+    VietQrWebhookPayload:
+      type: object
+      required: [gateway, transactionId, amount, content, status]
+      properties:
+        gateway: { type: string, example: SePay }
+        transactionId: { type: string, example: FT2624490182, description: Khoá idempotency }
+        amount: { type: number, example: 150000 }
+        content:
+          type: string
+          example: MBVCB.9876543210.NINOPOS100234.CT tu 0123456789
+          description: Nội dung chuyển khoản THÔ. Ngân hàng chèn thêm chữ — phải dò mã đơn bằng regex.
+        orderCode: { type: [string, 'null'], description: Một số cổng đã tách sẵn; không phải lúc nào cũng có }
+        bankAccount: { type: string }
+        status: { type: string, enum: [SUCCESS, FAILED] }
+        timestamp: { type: string, format: date-time }
+
+    DashboardReport:
+      type: object
+      required: [netRevenue, totalOrders]
+      properties:
+        netRevenue: { type: number }
+        grossRevenue: { type: number }
+        totalDiscount: { type: number }
+        totalOrders: { type: integer }
+        totalGuests: { type: integer }
+        avgOrderValue: { type: number }
+        revenueChangePercent: { type: number, description: So với cùng kỳ liền trước }
+        tableOccupancyPercent: { type: number }
+        revenueByHour:
+          type: array
+          description: Nguồn cho biểu đồ đường doanh thu theo giờ
+          items:
+            type: object
+            properties:
+              hour: { type: integer, minimum: 0, maximum: 23 }
+              revenue: { type: number }
+              orderCount: { type: integer }
+        topSellingItems:
+          type: array
+          items:
+            type: object
+            properties:
+              itemId: { type: string, format: uuid }
+              itemName: { type: string }
+              quantity: { type: number }
+              revenue: { type: number }
+        paymentBreakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              method: { type: string, enum: [CASH, VIETQR, CARD, EWALLET, DEBT, VOUCHER] }
+              amount: { type: number }
+              count: { type: integer }
+        lowStockAlerts:
+          type: array
+          items:
+            type: object
+            properties:
+              ingredientId: { type: string, format: uuid }
+              name: { type: string }
+              stockQuantity: { type: number }
+              minStockAlert: { type: number }
+              unit: { type: string }
+        suspiciousActivities:
+          type: array
+          description: Nguồn cho khối cảnh báo đỏ — huỷ món / giảm giá bất thường theo ca
+          items:
+            type: object
+            properties:
+              shiftId: { type: string, format: uuid }
+              userId: { type: string, format: uuid }
+              userName: { type: string }
+              action: { type: string, enum: [CANCEL_ITEM, APPLY_DISCOUNT, VOID_BILL] }
+              count: { type: integer }
+              totalAmount: { type: number }
+
+    User:
+      type: object
+      required: [id, username, fullName, role]
+      properties:
+        id: { type: string, format: uuid }
+        storeId: { type: string, format: uuid }
+        username: { type: string }
+        fullName: { type: string }
+        role: { type: string, enum: [OWNER, ADMIN, CASHIER, WAITER, KITCHEN] }
+        maxDiscountPercent: { type: number }

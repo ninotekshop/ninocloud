@@ -1,0 +1,50 @@
+// FILE NÀY ĐƯỢC SINH TỰ ĐỘNG — KHÔNG SỬA TAY.
+// Nguồn: packages/design-tokens/tokens.json
+// Sinh lại: node tools/scripts/gen-tokens.js
+
+export const NinoTokens = {
+  color: {
+    brandPrimary: '#007AFF',
+    brandPrimaryDark: '#0055FF',
+    brandPrimaryLight: '#4DA3FF',
+    brandPrimaryPressed: '#0062CC',
+    semanticSuccess: '#34C759',
+    semanticWarning: '#FF9500',
+    semanticDanger: '#FF3B30',
+    semanticInfo: '#5AC8FA',
+    surfaceBackground: '#F2F2F7',
+    surfaceCard: '#FFFFFF',
+    surfaceElevated: '#FFFFFF',
+    surfaceDivider: '#E5E5EA',
+    surfaceOverlay: '#00000066',
+    textPrimary: '#1C1C1E',
+    textSecondary: '#6E6E73',
+    textTertiary: '#AEAEB2',
+    textOnPrimary: '#FFFFFF',
+    textDisabled: '#C7C7CC',
+    tableStatusEMPTY: '#34C759',
+    tableStatusOCCUPIED: '#007AFF',
+    tableStatusRESERVED: '#FF9500',
+    tableStatusBILLING: '#FF3B30',
+    tableStatusLOCKED: '#AEAEB2',
+    kitchenStatusWAITING: '#AEAEB2',
+    kitchenStatusCOOKING: '#FF9500',
+    kitchenStatusREADY: '#34C759',
+    kitchenStatusSERVED: '#007AFF',
+    kitchenStatusCANCELLED: '#FF3B30',
+  },
+  touchTarget: {
+    minimum: 48,
+    comfortable: 56,
+    large: 72,
+    spacingBetween: 8,
+  },
+  connectivity: {
+    lanReconnectIntervalMs: 3000,
+    lanTimeoutMs: 500,
+    cloudSyncIntervalMs: 30000,
+    cloudSyncBatchSize: 100,
+    tableLockTtlSeconds: 30,
+    qrSessionTtlMinutes: 15,
+  },
+} as const;

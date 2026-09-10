@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NinoPOS - Hệ Thống Quản Lý & Tính Tiền</title>
+  <link rel="stylesheet" href="pos.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <!-- Windows Title Bar -->
+  <div class="window-titlebar">
+    <div class="titlebar-drag-region">
+      <i class="fa-solid fa-cash-register brand-icon"></i>
+      <span class="app-name">NinoPOS</span>
+      <span class="app-version">v2.4 Pro | NINOTEK Technology & Solution</span>
+    </div>
+    <div class="window-controls">
+      <button class="win-btn" title="Thu nhỏ"><i class="fa-solid fa-minus"></i></button>
+      <button class="win-btn" title="Phóng to"><i class="fa-regular fa-square"></i></button>
+      <button class="win-btn close-btn" title="Đóng"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div>
+
+  <!-- Top Navigation / Status Header -->
+  <header class="top-header">
+    <div class="brand-logo">
+      <div class="logo-badge">N</div>
+      <div class="brand-text">
+        <h2>NinoPOS</h2>
+        <small>NHÀ HÀNG - QUÁN NHẬU - CAFE</small>
+      </div>
+    </div>
+
+    <!-- Main Navigation Tabs -->
+    <nav class="main-tabs">
+      <button class="tab-btn active" data-view="pos-view">
+        <i class="fa-solid fa-desktop"></i> Bán Hàng
+      </button>
+      <button class="tab-btn" data-view="table-view">
+        <i class="fa-solid fa-border-all"></i> Sơ Đồ Bàn
+      </button>
+      <button class="tab-btn" data-view="inventory-view">
+        <i class="fa-solid fa-boxes-stacked"></i> Nhập Liệu & Kho
+      </button>
+      <button class="tab-btn" data-view="report-view">
+        <i class="fa-solid fa-chart-line"></i> Báo Cáo & Thống Kê
+      </button>
+      <button class="tab-btn" id="settingsTab" data-view="settings-view" aria-label="Mở mục cấu hình hệ thống" title="Cấu hình hệ thống">
+        <i class="fa-solid fa-gears"></i> Cấu Hình
+      </button>
+    </nav>
+
+    <!-- Cashier Info & Quick Actions -->
+    <div class="header-right">
+      <div class="user-chip">
+        <i class="fa-solid fa-circle-user avatar-icon"></i>
+        <div class="user-info">
+          <span class="user-name">Lê Trung Hiếu (Admin)</span>
+          <span class="user-role">Ca 1 | Quy Nhơn</span>
+        </div>
+      </div>
+      <div class="system-time" id="clock">00:00:00</div>
+      <button class="icon-action-btn" title="Mở két tiền (F10)" onclick="openCashDrawer()"><i class="fa-solid fa-vault"></i></button>
+      <button class="icon-action-btn" id="logoutBtn" title="Đăng xuất"><i class="fa-solid fa-right-from-bracket"></i></button>
+    </div>
+  </header>
+
+  <!-- Main Workspace Container -->
+  <main class="main-content">
+    
+    <!-- VIEW 1: BÁN HÀNG & THU NGÂN (3-COLUMN POS) -->
+    <section id="pos-view" class="app-view active-view">
+      <!-- Cột 1: Danh mục -->
+      <aside class="pos-category-sidebar">
+        <div class="sidebar-header">
+          <i class="fa-solid fa-layer-group"></i> Danh Mục
+        </div>
+        <div class="category-list" id="categoryList">
+          <button class="cat-btn active" data-cat="all"><i class="fa-solid fa-utensils"></i> Tất cả món</button>
+          <button class="cat-btn" data-cat="khaivi"><i class="fa-solid fa-seedling"></i> Khai vị</button>
+          <button class="cat-btn" data-cat="monchinh"><i class="fa-solid fa-bowl-food"></i> Món chính</button>
+          <button class="cat-btn" data-cat="launuong"><i class="fa-solid fa-fire-burner"></i> Lẩu & Nướng</button>
+          <button class="cat-btn" data-cat="biaruo"><i class="fa-solid fa-beer-mug-empty"></i> Bia & Rượu</button>
+          <button class="cat-btn" data-cat="giaikhat"><i class="fa-solid fa-glass-water"></i> Nước ngọt & Cafe</button>
+          <button class="cat-btn" data-cat="anvat"><i class="fa-solid fa-cookie-bite"></i> Đồ ăn vặt</button>
+        </div>
+      </aside>
+
+      <!-- Cột 2: Lưới Sản Phẩm -->
+      <section class="pos-menu-center">
+        <div class="menu-search-bar">
+          <div class="search-input-wrap">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="searchInput" placeholder="Tìm tên món, mã món (F1)..." autocomplete="off">
+          </div>
+          <div class="quick-filter">
+            <button class="chip active">Bán chạy</button>
+            <button class="chip">Món nhậu</button>
+            <button class="chip">Đặc sản</button>
+          </div>
+        </div>
+
+        <div class="menu-grid" id="productGrid">
+          <!-- Render dynamically from JS -->
+        </div>
+      </section>
+
+      <!-- Cột 3: Chi Tiết Đơn Hàng & Thanh Toán -->
+      <aside class="pos-order-panel">
+        <div class="order-header">
+          <div class="table-tag">
+            <i class="fa-solid fa-bell-concierge"></i> <strong id="currentTableDisplay">Bàn T-12 (Khu Sân Vườn)</strong>
+          </div>
+          <div class="order-id">#HD-20260908-01</div>
+        </div>
+
+        <!-- Danh sách món đã order -->
+        <div class="order-items-wrapper">
+          <table class="order-table">
+            <thead>
+              <tr>
+                <th>Món</th>
+                <th width="75">SL</th>
+                <th width="85">Đơn giá</th>
+                <th width="90">Thành tiền</th>
+                <th width="30"></th>
+              </tr>
+            </thead>
+            <tbody id="orderTableBody">
+              <!-- Render dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Tổng kết & Khuyến mãi -->
+        <div class="order-summary-box">
+          <div class="summary-row">
+            <span>Tiền hàng (Tạm tính):</span>
+            <span id="subTotal">0 đ</span>
+          </div>
+          <div class="summary-row">
+            <span>Giảm giá / Voucher:</span>
+            <span class="text-danger" id="discountVal">-0 đ</span>
+          </div>
+          <div class="summary-row">
+            <span>VAT (8%):</span>
+            <span id="vatVal">0 đ</span>
+          </div>
+          <div class="summary-row total-highlight">
+            <span>TỔNG THANH TOÁN:</span>
+            <span class="total-amount" id="grandTotal">0 đ</span>
+          </div>
+        </div>
+
+        <!-- Cụm nút hành động -->
+        <div class="order-actions-grid">
+          <button class="btn btn-secondary" onclick="printDraftBill()"><i class="fa-solid fa-print"></i> Tạm Tính (F8)</button>
+          <button class="btn btn-warning" onclick="sendToKitchen()"><i class="fa-solid fa-bell"></i> Báo Bếp/Bar (F7)</button>
+          <button class="btn btn-outline" onclick="openTableTransferModal()"><i class="fa-solid fa-right-left"></i> Chuyển Bàn</button>
+          <button class="btn btn-danger" onclick="cancelCurrentOrder()"><i class="fa-solid fa-trash-can"></i> Hủy Đơn</button>
+          <button class="btn btn-success btn-checkout" onclick="openPaymentModal()">
+            <i class="fa-solid fa-money-check-dollar"></i> THANH TOÁN (F9)
+          </button>
+        </div>
+      </aside>
+    </section>
+
+    <!-- VIEW 2: SƠ ĐỒ BÀN (FLOOR PLAN) -->
+    <section id="table-view" class="app-view">
+      <div class="floor-plan-dashboard">
+        <div class="floor-toolbar"><div class="floor-tabs-group" id="floorTabs"></div><div class="floor-actions-right"><div class="status-indicators"><span class="ind-badge ind-empty"><span class="dot"></span> Trống <b id="emptyTableCount">0</b></span><span class="ind-badge ind-occupied"><span class="dot"></span> Có khách <b id="occupiedTableCount">0</b></span><span class="ind-badge ind-waiting"><span class="dot"></span> Chờ bill <b id="waitingTableCount">0</b></span><span class="ind-badge ind-reserved"><span class="dot"></span> Đặt trước <b id="reservedTableCount">0</b></span></div><div class="action-btn-group"><button class="btn btn-outline" onclick="openAreaModal()"><i class="fa-solid fa-layer-group"></i> Khu vực</button><button class="btn btn-primary" onclick="openTableModal()"><i class="fa-solid fa-plus"></i> Thêm bàn</button></div></div></div>
+        <div class="floor-content-scroll"><div class="tables-smart-grid" id="floorGrid"></div></div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: NHẬP LIỆU & QUẢN LÝ KHO -->
+    <section id="inventory-view" class="app-view">
+      <div class="inventory-dashboard">
+        <div class="inv-metrics-bar">
+          <div class="inv-metric-card"><div class="inv-metric-icon bg-blue-soft"><i class="fa-solid fa-boxes-stacked"></i></div><div class="inv-metric-details"><span class="inv-metric-lbl">Tổng mặt hàng</span><strong class="inv-metric-num" id="metricTotalItems">0 món</strong></div></div>
+          <div class="inv-metric-card"><div class="inv-metric-icon bg-green-soft"><i class="fa-solid fa-vault"></i></div><div class="inv-metric-details"><span class="inv-metric-lbl">Tổng giá trị tồn</span><strong class="inv-metric-num" id="metricStockValue">0 đ</strong></div></div>
+          <div class="inv-metric-card"><div class="inv-metric-icon bg-amber-soft"><i class="fa-solid fa-triangle-exclamation"></i></div><div class="inv-metric-details"><span class="inv-metric-lbl">Sắp hết hàng</span><strong class="inv-metric-num text-amber" id="metricLowStock">0 món</strong></div></div>
+          <div class="inv-metric-card"><div class="inv-metric-icon bg-red-soft"><i class="fa-solid fa-circle-xmark"></i></div><div class="inv-metric-details"><span class="inv-metric-lbl">Hết hàng</span><strong class="inv-metric-num text-red" id="metricOutStock">0 món</strong></div></div>
+        </div>
+        <div class="inv-main-card">
+          <div class="inv-toolbar"><div class="inv-toolbar-left"><div class="search-box-modern"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="invSearchInput" placeholder="Tìm theo mã, tên món..."></div><select class="select-filter" id="invCategoryFilter"><option value="all">Tất cả danh mục</option><option value="khaivi">Khai vị</option><option value="monchinh">Món chính</option><option value="launuong">Lẩu & Nướng</option><option value="biaruo">Bia & Rượu</option><option value="giaikhat">Giải khát & Cafe</option><option value="anvat">Đồ ăn vặt</option></select><select class="select-filter" id="invStockFilter"><option value="all">Tất cả tồn kho</option><option value="low">Sắp hết hàng</option><option value="out">Hết hàng</option></select></div><div class="inv-toolbar-right"><button class="btn btn-outline" onclick="exportProductsExcel()"><i class="fa-solid fa-file-export"></i> Xuất Excel</button><button class="btn btn-outline" onclick="importProductsExcel()"><i class="fa-solid fa-file-import"></i> Nhập Excel</button><button class="btn btn-primary" onclick="openProductDrawer()"><i class="fa-solid fa-plus"></i> Thêm mặt hàng</button></div></div>
+          <div class="inv-table-wrap"><table class="inv-modern-table"><thead><tr><th class="center-col">Ảnh</th><th>Mã / Tên mặt hàng</th><th>Danh mục</th><th>ĐVT</th><th class="right-col">Giá vốn</th><th class="right-col">Giá bán</th><th>Tồn kho</th><th>Trạng thái</th><th class="center-col">Thao tác</th></tr></thead><tbody id="inventoryModernTableBody"></tbody></table></div>
+          <div class="inv-table-footer"><span class="page-info" id="inventoryPageInfo">0 mặt hàng</span></div>
+        </div>
+      </div>
+      <div class="drawer-overlay" id="productDrawerOverlay" onclick="closeProductDrawer()"></div>
+      <aside class="drawer-panel" id="productDrawer"><div class="drawer-header"><h3 id="drawerTitle"><i class="fa-solid fa-box-open"></i> Thêm sản phẩm</h3><button class="drawer-close" onclick="closeProductDrawer()">&times;</button></div><form id="drawerProductForm" onsubmit="handleDrawerSaveProduct(event)"><div class="drawer-body"><div class="img-upload-section"><div class="img-preview-box" id="imgPreviewBox"><i class="fa-regular fa-image"></i></div><div class="img-upload-controls"><button type="button" class="btn btn-outline btn-sm" onclick="uploadDrawerProductImage()"><i class="fa-solid fa-arrow-up-from-bracket"></i> Chọn ảnh từ máy</button><input type="text" id="drawerProdImgUrl" placeholder="Hoặc dán URL hình ảnh..." oninput="updateUrlPreview(this.value)"></div></div><div class="form-row"><div class="form-group col-6"><label>Mã món / Barcode</label><input type="text" id="drawerProdCode" required></div><div class="form-group col-6"><label>Đơn vị tính</label><input type="text" id="drawerProdUnit" placeholder="Lon, Đĩa, Kg..." required></div></div><div class="form-group"><label>Tên món ăn / Đồ uống</label><input type="text" id="drawerProdName" required></div><div class="form-group"><label>Nhóm danh mục</label><select id="drawerProdCat"><option value="khaivi">Khai vị</option><option value="monchinh">Món chính</option><option value="launuong">Lẩu & Nướng</option><option value="biaruo">Bia & Rượu</option><option value="giaikhat">Giải khát & Cafe</option><option value="anvat">Đồ ăn vặt</option></select></div><div class="form-row"><div class="form-group col-6"><label>Giá vốn</label><input type="number" id="drawerProdCost" required></div><div class="form-group col-6"><label>Giá bán</label><input type="number" id="drawerProdPrice" required></div></div><div class="form-row"><div class="form-group col-6"><label>Tồn kho</label><input type="number" id="drawerProdStock" value="0"></div><div class="form-group col-6"><label>Cảnh báo mức thấp</label><input type="number" id="drawerProdMinStock" value="5"></div></div></div><div class="drawer-footer"><button type="button" class="btn btn-secondary" onclick="closeProductDrawer()">Hủy bỏ</button><button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Lưu sản phẩm</button></div></form></aside>
+    </section>
+
+    <!-- VIEW 4: BÁO CÁO & THỐNG KÊ DOANH THU -->
+    <section id="report-view" class="app-view">
+      <div class="analytics-dashboard"><div class="analytics-filter-toolbar"><div class="date-filter-presets"><button class="analytics-date-btn active" data-days="0">Hôm nay</button><button class="analytics-date-btn" data-days="7">7 ngày</button><button class="analytics-date-btn" data-days="30">30 ngày</button></div><label>Từ ngày <input id="analyticsFrom" type="date"></label><label>Đến ngày <input id="analyticsTo" type="date"></label><button class="btn btn-primary" onclick="loadAnalytics()"><i class="fa-solid fa-filter"></i> Xem báo cáo</button></div><div class="analytics-scroll-content"><div class="kpi-metrics-row"><div class="kpi-card border-blue"><span class="kpi-label">Doanh thu</span><strong class="kpi-amount" id="analyticsRevenue">0 đ</strong><small class="kpi-footer">Đã thanh toán</small></div><div class="kpi-card border-green"><span class="kpi-label">Hóa đơn hoàn tất</span><strong class="kpi-amount" id="analyticsInvoices">0</strong><small class="kpi-footer" id="analyticsAverage">Trung bình 0 đ</small></div><div class="kpi-card border-orange"><span class="kpi-label">Món bán chạy nhất</span><strong class="kpi-amount" id="analyticsTopProduct">Chưa có dữ liệu</strong><small class="kpi-footer" id="analyticsTopQuantity">0 món</small></div><div class="kpi-card border-purple"><span class="kpi-label">Thanh toán chính</span><strong class="kpi-amount" id="analyticsPaymentMix">Chưa có dữ liệu</strong><small class="kpi-footer">Theo doanh thu</small></div></div><div class="analytics-charts-row"><div class="analytics-chart-card"><div class="analytics-card-title"><h3><i class="fa-solid fa-chart-line"></i> Doanh thu theo ngày</h3></div><div id="analyticsDailyChart" class="daily-bars"></div></div><div class="analytics-chart-card"><div class="analytics-card-title"><h3><i class="fa-solid fa-wallet"></i> Cơ cấu thanh toán</h3></div><div id="analyticsPaymentChart" class="payment-breakdown"></div></div></div><div class="analytics-bottom-row"><div class="analytics-card-title"><h3><i class="fa-solid fa-receipt"></i> Chi tiết hóa đơn</h3><input class="table-search-inline" id="analyticsOrderSearch" placeholder="Tìm mã hóa đơn, bàn..."></div><div class="inv-table-wrap"><table class="inv-modern-table"><thead><tr><th>Mã HĐ</th><th>Bàn</th><th>Thời gian</th><th>Thu ngân</th><th>Thanh toán</th><th class="right-col">Tổng tiền</th><th></th></tr></thead><tbody id="analyticsOrderTable"></tbody></table></div></div></div></div>
+    </section>
+
+    <!-- VIEW 5: CẤU HÌNH & THIẾT LẬP HỆ THỐNG -->
+    <section id="settings-view" class="app-view">
+      <div class="config-v26-layout">
+        <aside class="config-v26-sidebar"><div class="config-v26-brand"><i class="fa-solid fa-sliders"></i><span>CẤU HÌNH HỆ THỐNG</span></div><div class="config-v26-nav">
+          <button class="config-nav-btn active" data-config-pane="config-general" aria-label="Điểm bán và hóa đơn" title="Điểm bán và hóa đơn"><i class="fa-solid fa-store"></i><span><strong>1. Điểm bán & hóa đơn</strong><small>Tên quán, địa chỉ, logo, footer bill</small></span></button>
+          <button class="config-nav-btn" data-config-pane="config-printer" aria-label="Thiết bị và máy in" title="Thiết bị và máy in"><i class="fa-solid fa-print"></i><span><strong>2. Thiết bị & máy in</strong><small>In K80, máy in bếp, RJ11, màn hình phụ</small></span></button>
+          <button class="config-nav-btn" data-config-pane="config-vietqr" aria-label="Thanh toán và cổng" title="Thanh toán và cổng"><i class="fa-solid fa-qrcode"></i><span><strong>3. Thanh toán & cổng</strong><small>VietQR, POS, phương thức thu tiền</small></span></button>
+          <button class="config-nav-btn" data-config-pane="config-tax" aria-label="Thuế, phí và khuyến mãi" title="Thuế, phí và khuyến mãi"><i class="fa-solid fa-percent"></i><span><strong>4. Thuế, phí & khuyến mãi</strong><small>VAT, service charge, chiết khấu</small></span></button>
+          <button class="config-nav-btn" data-config-pane="config-floor" aria-label="Mặt bằng và menu" title="Mặt bằng và menu"><i class="fa-solid fa-map"></i><span><strong>5. Mặt bằng & menu</strong><small>Khu vực, bàn, danh mục, tồn kho</small></span></button>
+          <button class="config-nav-btn" data-config-pane="config-staff" aria-label="Nhân viên và bảo mật" title="Nhân viên và bảo mật"><i class="fa-solid fa-users-gear"></i><span><strong>6. Nhân viên & bảo mật</strong><small>Tài khoản, PIN ca, RBAC</small></span></button>
+          <button class="config-nav-btn" data-config-pane="config-system" aria-label="Hệ thống và dữ liệu" title="Hệ thống và dữ liệu"><i class="fa-solid fa-database"></i><span><strong>7. Hệ thống & dữ liệu</strong><small>Sao lưu, phím tắt, nhật ký</small></span></button>
+          <button class="config-nav-btn" data-config-pane="config-license" aria-label="Bản quyền phần mềm" title="Bản quyền phần mềm"><i class="fa-solid fa-certificate"></i><span><strong>Bản quyền phần mềm</strong><small>Thông tin và license key</small></span></button>
+        </div></aside>
+        <div class="config-v26-content">
+          <div class="config-pane active" id="config-staff"><div class="config-pane-header"><div><h3><i class="fa-solid fa-users-gear"></i> Quản lý nhân viên & tài khoản ca</h3><p>Quản lý tài khoản thu ngân, mã PIN và phân quyền truy cập.</p></div><button class="btn btn-primary" onclick="openStaffModal()"><i class="fa-solid fa-user-plus"></i> Thêm nhân viên</button></div><div class="config-pane-tools"><div class="search-box-modern"><i class="fa-solid fa-magnifying-glass"></i><input id="staffSearchInput" placeholder="Tìm tên, tài khoản, PIN..."></div></div><div class="config-table-wrap"><table class="inv-modern-table"><thead><tr><th>Nhân viên</th><th>Tài khoản</th><th>Vai trò</th><th class="center-col">PIN</th><th class="center-col">Trạng thái</th><th class="center-col">Thao tác</th></tr></thead><tbody id="staffTableBody"></tbody></table></div></div>
+          <div class="config-pane" id="config-general"><div class="config-pane-header"><div><h3><i class="fa-solid fa-store"></i> Thông tin nhà hàng / điểm bán</h3><p>Thông tin hiển thị trên hóa đơn K80 và báo cáo.</p></div><button class="btn btn-primary" onclick="saveConfigGeneral()"><i class="fa-solid fa-check"></i> Lưu cấu hình</button></div><div class="config-scroll"><div class="config-form-grid"><div class="form-group"><label>Tên nhà hàng / quán ăn</label><input id="configStoreName"></div><div class="form-group"><label>Số điện thoại / Hotline</label><input id="configStorePhone"></div><div class="form-group config-span-2"><label>Địa chỉ</label><input id="configStoreAddress"></div><div class="form-group config-span-2"><label>Logo thương hiệu (URL)</label><input id="configStoreLogo" placeholder="https://.../logo.png"></div><div class="form-group config-span-2"><label>Footer hóa đơn</label><textarea id="configBillFooter" rows="3" placeholder="Cảm ơn Quý khách..."></textarea></div></div><div class="config-toggle-list config-mini-toggles"><label><span><strong>Hiển thị QR tra cứu hóa đơn</strong><small>In mã QR tra cứu ở cuối hóa đơn.</small></span><input id="configInvoiceQr" type="checkbox" class="modern-switch"></label></div></div></div>
+          <div class="config-pane" id="config-printer"><div class="config-pane-header"><div><h3><i class="fa-solid fa-print"></i> Thiết bị & máy in</h3><p>Cấu hình riêng máy in bill, chế biến, pha chế và báo cáo.</p></div><button class="btn btn-primary" onclick="saveConfigPrinter()"><i class="fa-solid fa-check"></i> Lưu cấu hình</button></div><div class="config-scroll"><div class="printer-profile-grid"><div class="printer-profile"><h4>Bill tính tiền</h4><input id="printerBillKind" placeholder="WindowsSpooler / Tcp / Serial"><input id="printerBillName" placeholder="Tên máy in / IP"><input id="printerBillPort" placeholder="Port / COM"></div><div class="printer-profile"><h4>Bill chế biến</h4><input id="printerKitchenKind" placeholder="WindowsSpooler / Tcp / Serial"><input id="printerKitchenName" placeholder="Tên máy in / IP"><input id="printerKitchenPort" placeholder="Port / COM"></div><div class="printer-profile"><h4>Bill pha chế</h4><input id="printerBarKind" placeholder="WindowsSpooler / Tcp / Serial"><input id="printerBarName" placeholder="Tên máy in / IP"><input id="printerBarPort" placeholder="Port / COM"></div><div class="printer-profile"><h4>Báo cáo A4/A5</h4><input id="printerReportKind" placeholder="WindowsSpooler / Tcp / Serial"><input id="printerReportName" placeholder="Tên máy in / IP"><input id="printerReportPort" placeholder="Port / COM"></div></div><div class="config-test-actions"><button class="btn btn-secondary" onclick="printDraftBill()"><i class="fa-solid fa-receipt"></i> In thử bill</button><button class="btn btn-outline" onclick="openCashDrawer()"><i class="fa-solid fa-vault"></i> Test két RJ11</button></div></div></div>
+          <div class="config-pane" id="config-vietqr"><div class="config-pane-header"><div><h3><i class="fa-solid fa-qrcode"></i> Thanh toán & cổng thanh toán</h3><p>VietQR NAPAS, POS/SmartPOS và phương thức thu tiền.</p></div><button class="btn btn-primary" onclick="saveConfigVietQr()"><i class="fa-solid fa-check"></i> Lưu cấu hình</button></div><div class="config-scroll"><div class="config-form-grid"><div class="form-group"><label>Mã BIN ngân hàng</label><input id="configBankBin" inputmode="numeric"></div><div class="form-group"><label>Số tài khoản thụ hưởng</label><input id="configBankAccount"></div><div class="form-group config-span-2"><label>Tên chủ tài khoản</label><input id="configBankName"></div><div class="form-group"><label>IP POS/SmartPOS</label><input id="configPosTerminalHost" placeholder="192.168.1.50"></div><div class="form-group"><label>Cổng POS</label><input id="configPosTerminalPort" type="number" value="9000"></div></div><div class="config-toggle-list config-mini-toggles"><label><span><strong>Tiền mặt</strong><small>Cho phép thanh toán tiền mặt.</small></span><input id="configPayCash" type="checkbox" class="modern-switch" checked></label><label><span><strong>VietQR / Chuyển khoản</strong><small>Cho phép thanh toán qua QR.</small></span><input id="configPayQr" type="checkbox" class="modern-switch" checked></label><label><span><strong>Thẻ / SmartPOS</strong><small>Cho phép thanh toán bằng thẻ.</small></span><input id="configPayCard" type="checkbox" class="modern-switch" checked></label></div></div></div>
+          <div class="config-pane" id="config-pos"><div class="config-pane-header"><div><h3><i class="fa-solid fa-display"></i> Tùy chọn màn hình bán hàng POS</h3><p>Thiết lập VAT, in bill tự động và cảnh báo tồn kho.</p></div><button class="btn btn-primary" onclick="saveConfigPos()"><i class="fa-solid fa-check"></i> Lưu cấu hình</button></div><div class="config-scroll"><div class="config-toggle-list"><label><span><strong>Tự động áp dụng VAT 8%</strong><small>Thuế GTGT mặc định cho toàn bộ hóa đơn.</small></span><input id="configVatEnabled" type="checkbox" class="modern-switch" checked></label><label><span><strong>Tự động in hóa đơn sau thanh toán</strong><small>Gửi lệnh in ngay khi hoàn tất giao dịch.</small></span><input id="configAutoPrint" type="checkbox" class="modern-switch" checked></label><label><span><strong>Cảnh báo khi xuất kho hết hàng</strong><small>Hiện thông báo khi tồn kho bằng 0.</small></span><input id="configStockWarning" type="checkbox" class="modern-switch" checked></label></div></div></div>
+          <div class="config-pane" id="config-tax"><div class="config-pane-header"><div><h3><i class="fa-solid fa-percent"></i> Thuế, phí dịch vụ & khuyến mãi</h3><p>Cấu hình VAT, phí phục vụ và giới hạn chiết khấu cho Thu ngân.</p></div><button class="btn btn-primary" onclick="saveConfigTax()"><i class="fa-solid fa-check"></i> Lưu cấu hình</button></div><div class="config-scroll"><div class="config-form-grid"><div class="form-group"><label>VAT mặc định (%)</label><select id="configVatRate"><option value="8">8%</option><option value="10">10%</option><option value="0">Không áp dụng</option></select></div><div class="form-group"><label>Trần chiết khấu Thu ngân (%)</label><input id="configDiscountLimit" type="number" min="0" max="100"></div><div class="form-group"><label>Phí phục vụ (%)</label><input id="configServiceCharge" type="number" min="0" max="100"></div><div class="form-group"><label>Phụ thu cố định (VNĐ)</label><input id="configSurcharge" type="number" min="0"></div></div><div class="config-toggle-list config-mini-toggles"><label><span><strong>Giá món đã bao gồm VAT</strong><small>Không cộng VAT thêm vào tổng bill.</small></span><input id="configVatIncluded" type="checkbox" class="modern-switch"></label></div></div></div>
+          <div class="config-pane" id="config-tax"><div class="config-pane-header"><div><h3><i class="fa-solid fa-percent"></i> Thuế, phí dịch vụ & khuyến mãi</h3><p>Cấu hình VAT, phí phục vụ và giới hạn chiết khấu cho Thu ngân.</p></div><button class="btn btn-primary" onclick="saveConfigTax()"><i class="fa-solid fa-check"></i> Lưu cấu hình</button></div><div class="config-scroll"><div class="config-form-grid"><div class="form-group"><label>VAT mặc định (%)</label><select id="configVatRate"><option value="8">8%</option><option value="10">10%</option><option value="0">Không áp dụng</option></select></div><div class="form-group"><label>Trần chiết khấu Thu ngân (%)</label><input id="configDiscountLimit" type="number" min="0" max="100"></div><div class="form-group"><label>Phí phục vụ (%)</label><input id="configServiceCharge" type="number" min="0" max="100"></div><div class="form-group"><label>Phụ thu cố định (VNĐ)</label><input id="configSurcharge" type="number" min="0"></div></div><div class="config-toggle-list config-mini-toggles"><label><span><strong>Giá món đã bao gồm VAT</strong><small>Không cộng VAT thêm vào tổng bill.</small></span><input id="configVatIncluded" type="checkbox" class="modern-switch"></label></div><div class="promotion-form"><h4>Chương trình khuyến mãi theo thời gian</h4><div class="config-form-grid"><input id="promotionName" placeholder="Tên chương trình"><select id="promotionType"><option value="PERCENT">Giảm theo %</option><option value="AMOUNT">Giảm số tiền</option></select><input id="promotionValue" type="number" placeholder="Giá trị giảm"><input id="promotionStart" type="datetime-local"><input id="promotionEnd" type="datetime-local"><button class="btn btn-primary" onclick="createPromotion()" type="button"><i class="fa-solid fa-plus"></i> Tạo chương trình</button></div><div id="promotionList" class="promotion-list"></div></div></div></div>
+          <div class="config-pane" id="config-floor"><div class="config-pane-header"><div><h3><i class="fa-solid fa-map"></i> Mặt bằng, sơ đồ bàn & menu</h3><p>Quản lý nhanh các danh mục vận hành tại đúng phân hệ nghiệp vụ.</p></div></div><div class="config-scroll"><div class="config-cta-grid"><button class="config-cta" onclick="openConfigView('table-view')"><i class="fa-solid fa-map-location-dot"></i><span><strong>Quản lý khu vực & bàn</strong><small>Thêm, sửa, xóa khu vực, bàn và sức chứa.</small></span><i class="fa-solid fa-arrow-right"></i></button><button class="config-cta" onclick="openConfigView('inventory-view')"><i class="fa-solid fa-utensils"></i><span><strong>Quản lý thực đơn & tồn kho</strong><small>Danh mục món, món cân ký và cảnh báo tồn.</small></span><i class="fa-solid fa-arrow-right"></i></button></div></div></div>
+          <div class="config-pane" id="config-system"><div class="config-pane-header"><div><h3><i class="fa-solid fa-database"></i> Hệ thống, sao lưu & dữ liệu</h3><p>Bảo vệ dữ liệu local và kiểm tra nhật ký hoạt động.</p></div><button class="btn btn-primary" onclick="backupDatabase()"><i class="fa-solid fa-download"></i> Sao lưu database</button></div><div class="config-scroll"><div class="config-cta-grid"><button class="config-cta" onclick="backupDatabase()"><i class="fa-solid fa-hard-drive"></i><span><strong>Sao lưu SQLite thủ công</strong><small>Chọn nơi lưu bản sao dữ liệu hiện tại.</small></span><i class="fa-solid fa-arrow-right"></i></button><button class="config-cta" onclick="loadAuditLogs()"><i class="fa-solid fa-list-check"></i><span><strong>Xem nhật ký hoạt động</strong><small>Theo dõi hủy món, sửa đơn, in và mở két.</small></span><i class="fa-solid fa-arrow-right"></i></button></div><div class="config-shortcuts"><strong>Phím tắt vận hành</strong><span>F1 Tìm món</span><span>F7 Báo bếp</span><span>F8 Tạm tính</span><span>F9 Thanh toán</span><span>F10 Mở két</span></div><div class="config-audit-wrap"><h4>Nhật ký gần đây</h4><div id="configAuditList" class="config-audit-list">Bấm “Xem nhật ký hoạt động” để tải dữ liệu.</div></div></div></div>
+          <datalist id="vietnamBanks"></datalist>
+          <div class="config-pane" id="config-license"><div class="config-pane-header"><div><h3><i class="fa-solid fa-certificate"></i> Bản quyền phần mềm</h3><p>Thông tin phiên bản và cấp key bản quyền cho trạm NinoPOS.</p></div><button class="btn btn-primary" onclick="saveLicenseKey()"><i class="fa-solid fa-key"></i> Cấp / lưu key</button></div><div class="config-scroll"><div class="license-card"><div><span class="license-label">Phần mềm</span><strong>NinoPOS Desktop</strong></div><div><span class="license-label">Phiên bản</span><strong>2.7.0</strong></div><div><span class="license-label">Trạng thái</span><strong id="licenseStatus">Chưa kích hoạt</strong></div></div><div class="form-group license-key-field"><label>License key</label><input id="configLicenseKey" placeholder="NINO-XXXX-XXXX-XXXX"></div></div></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: THANH TOÁN ĐA PHƯƠNG THỨC -->
+  <div class="modal-overlay" id="paymentModal">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-cash-register"></i> Thanh Toán Hóa Đơn: <span id="payModalTable">Bàn T-12</span></h3>
+        <button class="close-modal" onclick="closePaymentModal()">&times;</button>
+      </div>
+      <div class="modal-body payment-grid">
+        <!-- Cột trái: Tùy chọn hình thức thanh toán -->
+        <div class="payment-methods">
+          <label class="pay-method-btn active" data-method="vietqr">
+            <input type="radio" name="payType" value="vietqr" checked>
+            <i class="fa-solid fa-qrcode"></i>
+            <div>
+              <strong>Quét Mã VietQR Động</strong>
+              <small>Khách chuyển khoản ngân hàng</small>
+            </div>
+          </label>
+
+          <label class="pay-method-btn" data-method="cash">
+            <input type="radio" name="payType" value="cash">
+            <i class="fa-solid fa-money-bill-wave"></i>
+            <div>
+              <strong>Tiền Mặt</strong>
+              <small>Tính tiền thối cho khách</small>
+            </div>
+          </label>
+
+          <label class="pay-method-btn" data-method="card">
+            <input type="radio" name="payType" value="card">
+            <i class="fa-solid fa-credit-card"></i>
+            <div>
+              <strong>Quẹt Thẻ (POS/Napas)</strong>
+              <small>Visa, Master, Napas thẻ nội địa</small>
+            </div>
+          </label>
+        </div>
+
+        <!-- Cột phải: Chi tiết thanh toán -->
+        <div class="payment-details-view">
+          <div class="pay-amount-box">
+            <span>SỐ TIỀN CẦN THANH TOÁN:</span>
+            <h2 id="payAmountDisplay">0 đ</h2>
+          </div>
+
+          <!-- Section VietQR -->
+          <div id="method-vietqr" class="method-subview active">
+            <div class="qr-code-center">
+              <img id="vietQrImage" class="mock-qr" alt="VietQR động">
+              <p>Mã QR tự động chứa đúng số tiền và nội dung bàn</p>
+              <div class="qr-status-spin"><i class="fa-solid fa-circle-notch fa-spin"></i> Đang chờ nhận biến động số dư tài khoản...</div>
+            </div>
+          </div>
+
+          <!-- Section Cash -->
+          <div id="method-cash" class="method-subview">
+            <div class="form-group">
+              <label>Khách đưa (VNĐ):</label>
+              <input type="number" id="cashGiven" class="input-lg" placeholder="Nhập tiền khách đưa..." oninput="calcChange()">
+            </div>
+            <div class="quick-cash-chips">
+              <button class="chip" onclick="setCash(100000)">100k</button>
+              <button class="chip" onclick="setCash(200000)">200k</button>
+              <button class="chip" onclick="setCash(500000)">500k</button>
+              <button class="chip" onclick="setCash(1000000)">1.000k</button>
+              <button class="chip" onclick="setExactCash()">Đủ tiền</button>
+            </div>
+            <div class="change-box mt-2">
+              <span>Tiền thối lại cho khách:</span>
+              <strong id="changeDisplay">0 đ</strong>
+            </div>
+          </div>
+
+          <!-- Section Card -->
+          <div id="method-card" class="method-subview">
+            <div class="card-prompt">
+              <i class="fa-solid fa-credit-card fa-3x"></i>
+              <p>Vui lòng yêu cầu khách chạm/chèn thẻ trên thiết bị mPOS hoặc POS ngân hàng.</p>
+              <input type="text" id="cardTrace" placeholder="Nhập mã tham chiếu / Trace No...">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <div class="footer-options">
+          <label><input type="checkbox" id="chkAutoPrint" checked> In hóa đơn K80 ngay</label>
+          <label><input type="checkbox" id="chkOpenDrawer" checked> Mở ngăn kéo tiền</label>
+        </div>
+        <div class="footer-btns">
+          <button class="btn btn-secondary" onclick="closePaymentModal()">Hủy Bỏ</button>
+          <button class="btn btn-success btn-lg" onclick="completePayment()"><i class="fa-solid fa-check-double"></i> HOÀN TẤT & IN BILL</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast"></div>
+
+  <div class="modal-overlay" id="floorModalOverlay">
+    <div class="modal-card floor-form-modal"><div class="modal-header"><h3 id="floorModalTitle"><i class="fa-solid fa-layer-group"></i> Thêm khu vực</h3><button class="close-modal" onclick="closeFloorModal()">&times;</button></div><form id="floorForm"><div class="modal-body"><div class="form-group" id="floorAreaNameGroup"><label id="floorNameLabel">Tên khu vực</label><input id="floorNameInput" required maxlength="80" placeholder="Ví dụ: Tầng 2"></div><div class="form-group" id="floorAreaSelectGroup" hidden><label>Khu vực</label><select id="floorAreaSelect" required></select></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeFloorModal()">Hủy</button><button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Lưu</button></div></form></div>
+  </div>
+
+  <div class="modal-overlay" id="tableOperationOverlay">
+    <div class="modal-card floor-form-modal"><div class="modal-header"><h3 id="tableOperationTitle"><i class="fa-solid fa-right-left"></i> Chuyển bàn</h3><button class="close-modal" onclick="closeTableOperationModal()">&times;</button></div><div class="modal-body"><p id="tableOperationHint" class="operation-hint"></p><div class="form-group"><label>Bàn đích</label><select id="tableOperationTarget"></select></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeTableOperationModal()">Hủy</button><button type="button" class="btn btn-primary" id="tableOperationSubmit"><i class="fa-solid fa-check"></i> Thực hiện</button></div></div>
+  </div>
+
+  <div class="modal-overlay" id="staffModalOverlay">
+    <div class="modal-card staff-config-modal"><div class="modal-header"><h3 id="staffModalTitle"><i class="fa-solid fa-user-gear"></i> Thêm nhân viên</h3><button class="close-modal" onclick="closeStaffModal()">&times;</button></div><form id="staffForm"><div class="modal-body"><input type="hidden" id="staffId"><div class="form-row"><div class="form-group col-6"><label>Tên đăng nhập</label><input id="staffUsername" required></div><div class="form-group col-6"><label>PIN đăng nhập nhanh</label><input id="staffPin" type="password" inputmode="numeric" pattern="\d{4,6}" maxlength="6" required></div></div><div class="form-group"><label>Họ và tên nhân viên</label><input id="staffFullName" required></div><div class="form-row"><div class="form-group col-6"><label>Vai trò</label><select id="staffRole"><option value="CASHIER">Thu ngân</option><option value="ADMIN">Quản trị viên</option><option value="WAITER">Phục vụ</option></select></div><div class="form-group col-6"><label>Trạng thái</label><select id="staffStatus"><option value="ACTIVE">Đang làm việc</option><option value="INACTIVE">Tạm khóa</option></select></div></div><div class="form-group"><label>Mật khẩu <small>(bắt buộc khi tạo, để trống khi không đổi)</small></label><input id="staffPassword" type="password"></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeStaffModal()">Hủy bỏ</button><button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Lưu nhân viên</button></div></form></div>
+  </div>
+
+  <div class="modal-overlay" id="permissionModalOverlay">
+    <div class="modal-card permission-modal"><div class="modal-header"><h3><i class="fa-solid fa-shield-halved"></i> Tùy chỉnh phân quyền</h3><button class="close-modal" onclick="closePermissionModal()">&times;</button></div><div class="modal-body"><p id="permissionUserLabel" class="operation-hint"></p><div id="permissionGroups" class="permission-groups"></div></div><div class="modal-footer"><button class="btn btn-secondary" onclick="closePermissionModal()">Hủy</button><button class="btn btn-primary" onclick="savePermissions()"><i class="fa-solid fa-check"></i> Lưu quyền</button></div></div>
+  </div>
+
+  <div class="login-overlay" id="loginOverlay">
+    <button class="login-close-btn" id="loginCloseBtn" type="button" aria-label="Đóng ứng dụng" title="Đóng ứng dụng"><i class="fa-solid fa-xmark"></i></button>
+    <div class="login-v28-shell"><section class="login-v28-brand"><img class="login-official-logo" src="assets/ninopos-logo.png" alt="NinoPOS"><div class="login-brand-name">NinoPOS</div><div class="login-brand-caption">Quản lý & bán hàng</div><div class="login-highlights"><span><i class="fa-solid fa-bolt-lightning"></i> Offline-first</span><span><i class="fa-solid fa-qrcode"></i> VietQR NAPAS 247</span><span><i class="fa-solid fa-print"></i> K80 & RJ11</span></div><small>Trạm POS: QUY NHON - POS 01 • NinoPOS v2.8</small></section><section class="login-v28-form"><div class="login-v28-heading"><h2>Đăng nhập phiên làm việc</h2><p>Chọn phương thức truy cập vào trạm thu ngân</p></div><form id="loginForm"><div class="login-tabs"><button type="button" class="login-tab active" data-login-mode="password"><i class="fa-solid fa-circle-user"></i> Tài khoản</button><button type="button" class="login-tab" data-login-mode="pin"><i class="fa-solid fa-calculator"></i> PIN nhanh</button></div><div id="passwordLoginFields" class="login-v28-fields"><label>Tên đăng nhập<input id="loginUsername" autocomplete="username" value="admin" required></label><label>Mật khẩu<input id="loginPassword" type="password" autocomplete="current-password" required></label><button class="btn-login-v28" type="submit">ĐĂNG NHẬP BÁN HÀNG <i class="fa-solid fa-arrow-right"></i></button></div><div id="pinLoginFields" class="login-v28-fields" hidden><label>Mã PIN<input id="loginPin" inputmode="numeric" maxlength="6" placeholder="Nhập mã PIN" oninput="updatePinDots(this.value)"></label><div id="loginPinDots" class="login-pin-dots"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="login-numpad"><button type="button" onclick="pressLoginPin('1')">1</button><button type="button" onclick="pressLoginPin('2')">2</button><button type="button" onclick="pressLoginPin('3')">3</button><button type="button" onclick="pressLoginPin('4')">4</button><button type="button" onclick="pressLoginPin('5')">5</button><button type="button" onclick="pressLoginPin('6')">6</button><button type="button" onclick="pressLoginPin('7')">7</button><button type="button" onclick="pressLoginPin('8')">8</button><button type="button" onclick="pressLoginPin('9')">9</button><button type="button" onclick="clearLoginPin()"><i class="fa-solid fa-rotate-left"></i></button><button type="button" onclick="pressLoginPin('0')">0</button><button type="button" onclick="backspaceLoginPin()"><i class="fa-solid fa-delete-left"></i></button></div></div></form></section></div>
+  </div>
+
+  <script src="pos.js"></script>
+</body>
+</html>

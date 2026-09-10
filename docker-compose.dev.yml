@@ -1,0 +1,49 @@
+# =====================================================================
+#  NINOTEK F&B POS — Môi trường phát triển
+#  Khởi động:  docker compose -f docker-compose.dev.yml up -d
+#  Chỉ dùng cho DEV. Production dùng managed PostgreSQL + Redis có backup.
+# =====================================================================
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ninotek-postgres
+    environment:
+      POSTGRES_USER: ninotek
+      POSTGRES_PASSWORD: ninotek_dev_only
+      POSTGRES_DB: ninotek
+      TZ: Asia/Ho_Chi_Minh
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Migration tự chạy theo thứ tự tên file khi container khởi tạo lần đầu
+      - ./database/postgres/migrations:/docker-entrypoint-initdb.d/1-migrations:ro
+      - ./database/seed:/docker-entrypoint-initdb.d/2-seed:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ninotek -d ninotek"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: ninotek-redis
+    # appendonly để hàng đợi BullMQ không mất job khi container restart
+    command: redis-server --appendonly yes
+    ports: ["6379:6379"]
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  adminer:
+    image: adminer:latest
+    container_name: ninotek-adminer
+    ports: ["8081:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+volumes:
+  pgdata:
+  redisdata:

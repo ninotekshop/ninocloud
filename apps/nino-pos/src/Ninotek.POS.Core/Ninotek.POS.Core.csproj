@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Domain thuần: KHÔNG phụ thuộc UI, DB hay phần cứng.
+       Nhờ vậy toàn bộ logic nghiệp vụ unit-test được mà không cần máy in
+       hay database. Đừng thêm PackageReference nào vào đây. -->
+</Project>

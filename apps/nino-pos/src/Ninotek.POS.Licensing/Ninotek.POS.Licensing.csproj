@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Ninotek.POS.Core\Ninotek.POS.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- .NET 8 chưa có Ed25519 trong System.Security.Cryptography
+         (chỉ có từ .NET 10). BouncyCastle là lựa chọn chuẩn để lấp chỗ này. -->
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.4.0" />
+    <!-- Đọc CPU ID / Mainboard Serial qua WMI -->
+    <PackageReference Include="System.Management" Version="8.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Public key nhúng thẳng vào .exe. KHÔNG bao giờ nhúng private key. -->
+    <EmbeddedResource Include="Keys\ninotek_public.pem" />
+  </ItemGroup>
+</Project>

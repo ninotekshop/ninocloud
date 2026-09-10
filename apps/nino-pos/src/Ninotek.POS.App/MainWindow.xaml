@@ -1,0 +1,76 @@
+<Window x:Class="Ninotek.POS.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="NinoPOS - Thu ngan" Width="1440" Height="900" MinWidth="1024" MinHeight="700"
+        Background="#FFF4F5F7" WindowStartupLocation="CenterScreen"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="FontSize" Value="15" /><Setter Property="MinHeight" Value="48" />
+            <Setter Property="Padding" Value="12,8" /><Setter Property="Margin" Value="0,0,8,8" />
+        </Style>
+        <Style x:Key="TileButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width" Value="148" /><Setter Property="Height" Value="112" />
+            <Setter Property="FontSize" Value="16" /><Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#FFD9DEE5" /><Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style x:Key="NavButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="HorizontalContentAlignment" Value="Left" /><Setter Property="Background" Value="White" />
+        </Style>
+    </Window.Resources>
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Background="White" BorderBrush="#FFE1E5EA" BorderThickness="0,0,0,1" Padding="16,10">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal"><TextBlock Text="NinoPOS" FontSize="25" FontWeight="Bold" /><TextBlock Text="  |  BAN HANG" FontSize="13" Foreground="#FF697586" VerticalAlignment="Center" Margin="10,0,0,0" /></StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="20,0"><TextBlock Text="CA HIEN TAI" FontSize="11" Foreground="#FF697586" VerticalAlignment="Center" Margin="0,0,8,0" /><TextBlock Text="Chua mo ca" FontSize="15" FontWeight="SemiBold" Foreground="#FFD97706" VerticalAlignment="Center" /></StackPanel>
+                <StackPanel Grid.Column="2" HorizontalAlignment="Right"><TextBlock x:Name="RoleText" Text="CASHIER" FontWeight="SemiBold" HorizontalAlignment="Right" /><TextBlock x:Name="ServerStatusText" Text="Khoi dong..." FontSize="12" Foreground="#FF697586" HorizontalAlignment="Right" /></StackPanel>
+            </Grid>
+        </Border>
+        <Grid Margin="12">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="15*" MinWidth="190" /><ColumnDefinition Width="47*" MinWidth="480" /><ColumnDefinition Width="38*" MinWidth="360" /></Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Background="White" BorderBrush="#FFE1E5EA" BorderThickness="1" Padding="12" Margin="0,0,8,0">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Bottom"><TextBlock Text="HE THONG" FontSize="11" FontWeight="Bold" Foreground="#FF697586" Margin="0,12,0,6" /><StackPanel x:Name="RoleActions" /></StackPanel>
+                    <StackPanel>
+                        <Button x:Name="FloorPlanButton" Content="Sơ đồ bàn" Style="{StaticResource NavButton}" Click="FloorPlanButton_Click" />
+                        <Button x:Name="MenuTabButton" Content="Thực đơn" Style="{StaticResource NavButton}" Click="MenuTabButton_Click" />
+                        <Button Content="Thanh toán" Style="{StaticResource NavButton}" Click="PaymentPageButton_Click" />
+                        <Button Content="Nhập dữ liệu" Style="{StaticResource NavButton}" Click="DataPageButton_Click" />
+                        <Button Content="Cấu hình" Style="{StaticResource NavButton}" Click="SettingsPageButton_Click" />
+                        <TextBlock Text="TÌM KIẾM NHANH" FontSize="11" FontWeight="Bold" Foreground="#FF697586" Margin="0,16,0,6" />
+                        <TextBox x:Name="SearchBox" Height="42" FontSize="16" Padding="10,6" TextChanged="SearchBox_TextChanged" ToolTip="F1 - Tim theo ten, ma mon, barcode" />
+                        <TextBlock Text="NHÓM HÀNG" FontSize="11" FontWeight="Bold" Foreground="#FF697586" Margin="0,16,0,6" />
+                        <StackPanel x:Name="CategoryPanel">
+                            <Button Content="Tất cả món" Style="{StaticResource NavButton}" Click="CategoryButton_Click" /><Button Content="Cà phê" Style="{StaticResource NavButton}" Click="CategoryButton_Click" /><Button Content="Trà / Nước" Style="{StaticResource NavButton}" Click="CategoryButton_Click" /><Button Content="Đồ ăn" Style="{StaticResource NavButton}" Click="CategoryButton_Click" /><Button Content="Bia / Rượu" Style="{StaticResource NavButton}" Click="CategoryButton_Click" /><Button Content="Khác" Style="{StaticResource NavButton}" Click="CategoryButton_Click" />
+                        </StackPanel>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+            <Border Grid.Column="1" Background="White" BorderBrush="#FFE1E5EA" BorderThickness="1" Padding="16" Margin="0,0,8,0">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12"><DockPanel><TextBlock x:Name="PageTitleText" Text="Bán hàng" FontSize="24" FontWeight="Bold" /><TextBlock DockPanel.Dock="Right" Text="F1 Tìm kiếm  •  F9 Thanh toán" FontSize="12" Foreground="#FF697586" VerticalAlignment="Bottom" /></DockPanel><TextBlock x:Name="PageSubtitleText" Text="Chọn món nhanh, hỗ trợ cảm ứng và bàn phím" Foreground="#FF697586" Margin="0,4,0,0" /></StackPanel>
+                    <Grid>
+                        <StackPanel x:Name="SalesPage"><WrapPanel x:Name="MenuPanel" /></StackPanel>
+                        <StackPanel x:Name="FloorPage" Visibility="Collapsed"><TextBlock Text="Khu vực: Tầng 1" FontSize="16" FontWeight="SemiBold" /><WrapPanel x:Name="TablePanel" Margin="0,12,0,0" /><TextBlock Text="XANH: Trống    ĐỎ: Đang phục vụ    VÀNG: Chờ thanh toán    XÁM: Đã đặt" Foreground="#FF697586" Margin="0,16,0,0" /></StackPanel>
+                        <StackPanel x:Name="DataPage" Visibility="Collapsed"><TextBlock Text="Nhập dữ liệu &amp; quản lý kho" FontSize="18" FontWeight="SemiBold" /><TextBlock Text="Mã hàng / Tên món / Giá bán / Định lượng" Foreground="#FF697586" Margin="0,8,0,12" /><Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><StackPanel Margin="0,0,8,0"><TextBox x:Name="DataCodeBox" Height="42" Margin="0,0,0,8" ToolTip="Mã hàng" /><TextBox x:Name="DataNameBox" Height="42" Margin="0,0,0,8" ToolTip="Tên món" /><TextBox x:Name="DataPriceBox" Height="42" Margin="0,0,0,8" ToolTip="Giá bán" /><Button Content="Lưu mặt hàng" Height="52" Background="#FF1479C9" Foreground="White" Click="SaveDataButton_Click" /></StackPanel><Border Grid.Column="1" Background="#FFF7F8FA" Padding="16"><StackPanel><TextBlock Text="Tồn kho nhanh" FontWeight="Bold" /><TextBlock Text="Cà phê Robusta                 10.00 kg" Margin="0,14,0,0" /><TextBlock Text="Sữa đặc                         24 lon" Margin="0,10,0,0" /><TextBlock Text="Trân châu đen                    3.00 kg" Margin="0,10,0,0" /></StackPanel></Border></Grid></StackPanel>
+                        <StackPanel x:Name="SettingsPage" Visibility="Collapsed"><TextBlock Text="Cấu hình hệ thống" FontSize="18" FontWeight="SemiBold" /><TextBlock Text="Máy in, két tiền, cửa hàng, người dùng và thiết bị LAN" Foreground="#FF697586" Margin="0,8,0,16" /><StackPanel><TextBox x:Name="PrinterNameBox" Height="42" Margin="0,0,0,8" ToolTip="Tên máy in Windows hoặc IP máy in LAN" /><ComboBox x:Name="PrinterKindBox" Height="42" Margin="0,0,0,8"><ComboBoxItem Content="WindowsSpooler" /><ComboBoxItem Content="Network" /><ComboBoxItem Content="Serial" /></ComboBox><TextBox Text="8080" Height="42" Margin="0,0,0,8" ToolTip="Cổng LAN NinoPOS" /><Button Content="Lưu cấu hình" Height="52" Background="#FF1479C9" Foreground="White" Click="SaveSettingsButton_Click" /></StackPanel></StackPanel>
+                    </Grid>
+                </DockPanel>
+            </Border>
+            <Border Grid.Column="2" Background="White" BorderBrush="#FFE1E5EA" BorderThickness="1" Padding="16">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+                        <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="Tạm tính" Foreground="#FF697586" /><TextBlock x:Name="SubtotalText" Grid.Column="1" Text="0 VND" /></Grid>
+                        <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="Giảm giá / Voucher" Foreground="#FF697586" /><TextBlock Text="0 VND" Grid.Column="1" /></Grid>
+                        <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="VAT / Phí dịch vụ" Foreground="#FF697586" /><TextBlock Text="0 VND" Grid.Column="1" /></Grid>
+                        <Border Background="#FFF1F8F3" Padding="12" Margin="0,0,0,10"><Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="TỔNG CỘNG" FontSize="16" FontWeight="Bold" /><TextBlock x:Name="TotalText" Grid.Column="1" Text="0 VND" FontSize="26" FontWeight="Bold" Foreground="#FF15803D" /></Grid></Border>
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><Button Content="Tạm tính" Click="PrintTemporaryButton_Click" /><Button Content="Gửi bếp" Grid.Column="1" Click="SendKitchenButton_Click" /><Button Content="Tách / Ghép" Grid.Column="2" /></Grid>
+                        <Button x:Name="CashPaymentButton" Content="THANH TOÁN  (F9)" Height="64" FontSize="19" FontWeight="Bold" Background="#FF16A34A" Foreground="White" Click="CashPaymentButton_Click" /><Button x:Name="VietQrButton" Content="Thanh toán VietQR" Height="52" Background="#FF0EA5E9" Foreground="White" Click="VietQrButton_Click" /><Image x:Name="QrImage" Width="190" Height="190" Margin="0,8,0,0" Stretch="Uniform" HorizontalAlignment="Center" />
+                    </StackPanel>
+                    <StackPanel><Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel><TextBlock x:Name="SelectedTableText" Text="Đơn mang đi" FontSize="22" FontWeight="Bold" /><TextBlock Text="Thu ngân: Cashier  |  Bắt đầu: --:--" FontSize="12" Foreground="#FF697586" /></StackPanel><TextBlock Grid.Column="1" Text="ESC" Foreground="#FF697586" /></Grid><Separator Margin="0,12" /><TextBlock Text="MÓN ĐÃ GỌI" FontSize="11" FontWeight="Bold" Foreground="#FF697586" /><ScrollViewer Height="190" VerticalScrollBarVisibility="Auto" Margin="0,6,0,0"><StackPanel x:Name="OrderListPanel" /></ScrollViewer><TextBlock x:Name="CurrentOrderText" Text="Chưa có món. Chọn món từ menu để bắt đầu." Foreground="#FF697586" TextWrapping="Wrap" Margin="0,10,0,0" /></StackPanel>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>

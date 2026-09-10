@@ -1,0 +1,36 @@
+name: nino_order
+description: Ninotek NinoOrder — App gọi món tại bàn cho nhân viên phục vụ
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Gọi REST LAN tới máy NinoPOS (discovery, pairing, sơ đồ bàn, tạo đơn...).
+  http: ^1.2.2
+
+  # Kênh /ws/lan/tables và /ws/lan/kitchen — cập nhật bàn/bếp thời gian thực.
+  web_socket_channel: ^3.0.1
+
+  # Lưu cục bộ trên thiết bị: cấu hình host POS đã ghép nối, deviceToken, và
+  # hàng đợi đơn offline (mã hoá JSON). Chọn package phổ biến, không cần
+  # native binary, đủ cho nhu cầu key-value của app này.
+  shared_preferences: ^2.3.2
+
+  # Sinh UUID v4 cho orderId/orderDetailId NGAY trên tablet — nền tảng của
+  # toàn bộ cơ chế khử trùng lặp khi gửi lại đơn sau khi mất mạng.
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/logo.png

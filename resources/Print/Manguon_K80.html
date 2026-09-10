@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @page {
+    margin: 0;
+    size: 80mm auto;
+  }
+  body {
+    width: 72mm;
+    margin: 0 auto;
+    padding: 10px 0;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    line-height: 1.3;
+    color: #000;
+  }
+  .center { text-align: center; }
+  .right { text-align: right; }
+  .bold { font-weight: bold; }
+  .title { font-size: 16px; margin: 4px 0; }
+  .divider { border-top: 1px dashed #000; margin: 6px 0; }
+  .double-divider { border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 1px 0; margin: 6px 0; }
+  
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; border-bottom: 1px dashed #000; padding-bottom: 4px; }
+  td { padding: 3px 0; vertical-align: top; }
+  
+  .total-block td { padding: 2px 0; }
+  .grand-total { font-size: 16px; }
+  .qr-code { margin: 8px auto; width: 120px; height: 120px; }
+</style>
+</head>
+<body>
+
+  <div class="center">
+    <div class="bold title">NHÀ HÀNG HƯƠNG BIỂN</div>
+    <div>123 Đường Xuân Diệu, Quy Nhơn</div>
+    <div>Hotline: 0905.xxx.xxx</div>
+    <div class="divider"></div>
+    <div class="bold" style="font-size: 15px;">PHIẾU THANH TOÁN</div>
+  </div>
+
+  <table style="margin-top: 5px;">
+    <tr><td>HĐ: #HD00928</td><td class="right">Bàn: B.12</td></tr>
+    <tr><td>Ngày: 08/09/2026</td><td class="right">Giờ: 20:15</td></tr>
+  </table>
+
+  <div class="divider"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 45%;">Món</th>
+        <th class="center" style="width: 15%;">SL</th>
+        <th class="right" style="width: 40%;">T.Tiền</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Ghẹ hấp bia<br><small><i>- Không cay</i></small></td>
+        <td class="center">2</td>
+        <td class="right">500.000</td>
+      </tr>
+      <tr>
+        <td>Mực lá nướng muối</td>
+        <td class="center">1</td>
+        <td class="right">180.000</td>
+      </tr>
+      <tr>
+        <td>Tiger Bạc</td>
+        <td class="center">6</td>
+        <td class="right">132.000</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="divider"></div>
+
+  <table class="total-block">
+    <tr><td>Tổng tiền món:</td><td class="right">812.000</td></tr>
+    <tr><td>Giảm giá:</td><td class="right">-0</td></tr>
+    <tr><td>VAT (8%):</td><td class="right">64.960</td></tr>
+    <tr class="grand-total bold">
+      <td style="padding-top: 6px;">THANH TOÁN:</td>
+      <td class="right" style="padding-top: 6px;">876.960 đ</td>
+    </tr>
+  </table>
+
+  <div class="double-divider"></div>
+
+  <div class="center" style="margin-top: 8px;">
+    <!-- URL tạo mã VietQR động qua ảnh -->
+    <img class="qr-code" src="https://api.vietqr.io/image/970436-102870123456-compact2.png?amount=876960&addInfo=HD00928" alt="QR VietQR">
+    <div><i>Quét mã VietQR để thanh toán</i></div>
+    <div style="margin-top: 6px;">Cảm ơn & Hẹn gặp lại Quý khách!</div>
+  </div>
+
+</body>
+</html>

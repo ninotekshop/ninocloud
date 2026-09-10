@@ -1,0 +1,31 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.{cs,csproj,sln,props}]
+indent_size = 4
+# C#: cảnh báo về null-safety và văn hoá số phải là LỖI.
+# Với phần mềm thu tiền, ToString() không chỉ định CultureInfo là mầm sai số tiền.
+dotnet_diagnostic.CA1305.severity = error
+dotnet_diagnostic.CS8600.severity = error
+dotnet_diagnostic.CS8602.severity = error
+dotnet_diagnostic.CS8618.severity = error
+csharp_style_namespace_declarations = file_scoped:warning
+
+[*.{sln}]
+indent_style = tab
+
+[*.{sql,py}]
+indent_size = 4
+
+[*.dart]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false

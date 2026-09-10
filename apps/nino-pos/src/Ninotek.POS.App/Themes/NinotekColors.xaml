@@ -1,0 +1,116 @@
+<!--
+    FILE NÀY ĐƯỢC SINH TỰ ĐỘNG — KHÔNG SỬA TAY.
+    Nguồn: packages/design-tokens/tokens.json
+    Sinh lại: node tools/scripts/gen-tokens.js
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- ==================== MÀU SẮC ==================== -->
+
+    <!-- brand -->
+    <Color x:Key="BrandPrimaryColor">#FF007AFF</Color>  <!-- Ninotek Blue — nút chính, tab đang chọn -->
+    <SolidColorBrush x:Key="BrandPrimaryBrush" Color="{StaticResource BrandPrimaryColor}" />
+    <Color x:Key="BrandPrimaryDarkColor">#FF0055FF</Color>  <!-- Điểm cuối gradient thương hiệu -->
+    <SolidColorBrush x:Key="BrandPrimaryDarkBrush" Color="{StaticResource BrandPrimaryDarkColor}" />
+    <Color x:Key="BrandPrimaryLightColor">#FF4DA3FF</Color>
+    <SolidColorBrush x:Key="BrandPrimaryLightBrush" Color="{StaticResource BrandPrimaryLightColor}" />
+    <Color x:Key="BrandPrimaryPressedColor">#FF0062CC</Color>
+    <SolidColorBrush x:Key="BrandPrimaryPressedBrush" Color="{StaticResource BrandPrimaryPressedColor}" />
+
+    <!-- semantic -->
+    <Color x:Key="SemanticSuccessColor">#FF34C759</Color>  <!-- Bàn trống / Món đã xong / Thanh toán thành công -->
+    <SolidColorBrush x:Key="SemanticSuccessBrush" Color="{StaticResource SemanticSuccessColor}" />
+    <Color x:Key="SemanticWarningColor">#FFFF9500</Color>  <!-- Đang chế biến / Sắp hết nguyên liệu -->
+    <SolidColorBrush x:Key="SemanticWarningBrush" Color="{StaticResource SemanticWarningColor}" />
+    <Color x:Key="SemanticDangerColor">#FFFF3B30</Color>  <!-- Cảnh báo kho / Bàn chờ trả tiền / Huỷ món -->
+    <SolidColorBrush x:Key="SemanticDangerBrush" Color="{StaticResource SemanticDangerColor}" />
+    <Color x:Key="SemanticInfoColor">#FF5AC8FA</Color>
+    <SolidColorBrush x:Key="SemanticInfoBrush" Color="{StaticResource SemanticInfoColor}" />
+
+    <!-- surface -->
+    <Color x:Key="SurfaceBackgroundColor">#FFF2F2F7</Color>  <!-- Nền ứng dụng -->
+    <SolidColorBrush x:Key="SurfaceBackgroundBrush" Color="{StaticResource SurfaceBackgroundColor}" />
+    <Color x:Key="SurfaceCardColor">#FFFFFFFF</Color>
+    <SolidColorBrush x:Key="SurfaceCardBrush" Color="{StaticResource SurfaceCardColor}" />
+    <Color x:Key="SurfaceElevatedColor">#FFFFFFFF</Color>
+    <SolidColorBrush x:Key="SurfaceElevatedBrush" Color="{StaticResource SurfaceElevatedColor}" />
+    <Color x:Key="SurfaceDividerColor">#FFE5E5EA</Color>
+    <SolidColorBrush x:Key="SurfaceDividerBrush" Color="{StaticResource SurfaceDividerColor}" />
+    <Color x:Key="SurfaceOverlayColor">#66000000</Color>
+    <SolidColorBrush x:Key="SurfaceOverlayBrush" Color="{StaticResource SurfaceOverlayColor}" />
+
+    <!-- text -->
+    <Color x:Key="TextPrimaryColor">#FF1C1C1E</Color>
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
+    <Color x:Key="TextSecondaryColor">#FF6E6E73</Color>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}" />
+    <Color x:Key="TextTertiaryColor">#FFAEAEB2</Color>
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="{StaticResource TextTertiaryColor}" />
+    <Color x:Key="TextOnPrimaryColor">#FFFFFFFF</Color>
+    <SolidColorBrush x:Key="TextOnPrimaryBrush" Color="{StaticResource TextOnPrimaryColor}" />
+    <Color x:Key="TextDisabledColor">#FFC7C7CC</Color>
+    <SolidColorBrush x:Key="TextDisabledBrush" Color="{StaticResource TextDisabledColor}" />
+
+    <!-- tableStatus -->
+    <Color x:Key="TableStatusEMPTYColor">#FF34C759</Color>  <!-- Trống -->
+    <SolidColorBrush x:Key="TableStatusEMPTYBrush" Color="{StaticResource TableStatusEMPTYColor}" />
+    <Color x:Key="TableStatusOCCUPIEDColor">#FF007AFF</Color>  <!-- Có khách -->
+    <SolidColorBrush x:Key="TableStatusOCCUPIEDBrush" Color="{StaticResource TableStatusOCCUPIEDColor}" />
+    <Color x:Key="TableStatusRESERVEDColor">#FFFF9500</Color>  <!-- Đã đặt -->
+    <SolidColorBrush x:Key="TableStatusRESERVEDBrush" Color="{StaticResource TableStatusRESERVEDColor}" />
+    <Color x:Key="TableStatusBILLINGColor">#FFFF3B30</Color>  <!-- Chờ thanh toán -->
+    <SolidColorBrush x:Key="TableStatusBILLINGBrush" Color="{StaticResource TableStatusBILLINGColor}" />
+    <Color x:Key="TableStatusLOCKEDColor">#FFAEAEB2</Color>  <!-- Đang bị khoá -->
+    <SolidColorBrush x:Key="TableStatusLOCKEDBrush" Color="{StaticResource TableStatusLOCKEDColor}" />
+
+    <!-- kitchenStatus -->
+    <Color x:Key="KitchenStatusWAITINGColor">#FFAEAEB2</Color>  <!-- Chờ làm -->
+    <SolidColorBrush x:Key="KitchenStatusWAITINGBrush" Color="{StaticResource KitchenStatusWAITINGColor}" />
+    <Color x:Key="KitchenStatusCOOKINGColor">#FFFF9500</Color>  <!-- Đang chế biến -->
+    <SolidColorBrush x:Key="KitchenStatusCOOKINGBrush" Color="{StaticResource KitchenStatusCOOKINGColor}" />
+    <Color x:Key="KitchenStatusREADYColor">#FF34C759</Color>  <!-- Đã xong -->
+    <SolidColorBrush x:Key="KitchenStatusREADYBrush" Color="{StaticResource KitchenStatusREADYColor}" />
+    <Color x:Key="KitchenStatusSERVEDColor">#FF007AFF</Color>  <!-- Đã lên bàn -->
+    <SolidColorBrush x:Key="KitchenStatusSERVEDBrush" Color="{StaticResource KitchenStatusSERVEDColor}" />
+    <Color x:Key="KitchenStatusCANCELLEDColor">#FFFF3B30</Color>  <!-- Đã huỷ -->
+    <SolidColorBrush x:Key="KitchenStatusCANCELLEDBrush" Color="{StaticResource KitchenStatusCANCELLEDColor}" />
+
+    <!-- ==================== KÍCH THƯỚC CHẠM ==================== -->
+    <!-- Ràng buộc BẮT BUỘC theo Master SRS: mọi nút bấm >= 48x48 dp -->
+    <sys:Double x:Key="TouchTargetMinimum">48</sys:Double>
+    <sys:Double x:Key="TouchTargetComfortable">56</sys:Double>
+    <sys:Double x:Key="TouchTargetLarge">72</sys:Double>
+    <sys:Double x:Key="TouchTargetSpacingBetween">8</sys:Double>
+
+    <!-- ==================== KHOẢNG CÁCH ==================== -->
+    <sys:Double x:Key="SpacingXS">4</sys:Double>
+    <sys:Double x:Key="SpacingSM">8</sys:Double>
+    <sys:Double x:Key="SpacingMD">12</sys:Double>
+    <sys:Double x:Key="SpacingLG">16</sys:Double>
+    <sys:Double x:Key="SpacingXL">24</sys:Double>
+    <sys:Double x:Key="SpacingXXL">32</sys:Double>
+    <sys:Double x:Key="SpacingXXXL">48</sys:Double>
+
+    <!-- ==================== BO GÓC ==================== -->
+    <CornerRadius x:Key="RadiusSm">6</CornerRadius>
+    <CornerRadius x:Key="RadiusMd">10</CornerRadius>
+    <CornerRadius x:Key="RadiusLg">16</CornerRadius>
+    <CornerRadius x:Key="RadiusPill">999</CornerRadius>
+
+    <!-- ==================== CHỮ ==================== -->
+    <FontFamily x:Key="FontPrimary">Inter, Segoe UI, Roboto, system-ui, sans-serif</FontFamily>
+    <FontFamily x:Key="FontNumeric">Inter</FontFamily>
+    <FontFamily x:Key="FontReceipt">Consolas, Courier New, monospace</FontFamily>
+    <sys:Double x:Key="FontSizeDisplayLarge">48</sys:Double>
+    <sys:Double x:Key="FontSizeDisplay">34</sys:Double>
+    <sys:Double x:Key="FontSizeH1">28</sys:Double>
+    <sys:Double x:Key="FontSizeH2">22</sys:Double>
+    <sys:Double x:Key="FontSizeH3">18</sys:Double>
+    <sys:Double x:Key="FontSizeBody">16</sys:Double>
+    <sys:Double x:Key="FontSizeBodyStrong">16</sys:Double>
+    <sys:Double x:Key="FontSizeCaption">13</sys:Double>
+    <sys:Double x:Key="FontSizeButton">16</sys:Double>
+
+</ResourceDictionary>

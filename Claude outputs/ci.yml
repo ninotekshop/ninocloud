@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  push: { branches: [main, develop] }
+  pull_request: { branches: [main, develop] }
+
+jobs:
+  # ------------------------------------------------------------------
+  # Cổng chặn số 1: schema phải chạy được trên CẢ HAI nền tảng.
+  # Đây là lỗi hay gặp nhất của kiến trúc hybrid — sửa PostgreSQL mà quên
+  # mirror sang SQLite, rồi máy POS ở quán không khởi động được.
+  # ------------------------------------------------------------------
+  database:
+    name: Database migrations
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ninotek
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+        ports: ["5432:5432"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Chạy migration PostgreSQL
+        env: { PGPASSWORD: postgres }
+        run: |
+          for f in database/postgres/migrations/V*.sql database/seed/V*.sql; do
+            echo "-> $f"
+            psql -h localhost -U postgres -d ninotek -v ON_ERROR_STOP=1 -q -f "$f"
+          done
+
+      - name: Chạy migration SQLite
+        run: |
+          sudo apt-get install -y --no-install-recommends sqlite3
+          for f in database/sqlite/migrations/V*.sql; do
+            echo "-> $f"
+            sqlite3 /tmp/ninopos.db < "$f"
+          done
+
+      - name: Đối chiếu hai schema có cùng danh sách bảng
+        env: { PGPASSWORD: postgres }
+        run: |
+          psql -h localhost -U postgres -d ninotek -tAc \
+            "SELECT table_name FROM information_schema.tables
+             WHERE table_schema='nino' AND table_type='BASE TABLE' ORDER BY 1" > /tmp/pg.txt
+          sqlite3 /tmp/ninopos.db \
+            "SELECT name FROM sqlite_master WHERE type='table'
+             AND name NOT LIKE 'sqlite_%' ORDER BY 1" > /tmp/lite.txt
+          echo "--- Chỉ có ở PostgreSQL (chấp nhận: bảng riêng của Cloud) ---"
+          comm -23 /tmp/pg.txt /tmp/lite.txt
+          echo "--- Chỉ có ở SQLite (chấp nhận: bảng riêng của máy POS) ---"
+          comm -13 /tmp/pg.txt /tmp/lite.txt
+
+  # ------------------------------------------------------------------
+  # Cổng chặn số 2: API contract phải hợp lệ.
+  # ------------------------------------------------------------------
+  contracts:
+    name: API contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - run: npx --yes @redocly/cli@latest lint packages/api-contracts/openapi.yaml
+      - run: npx --yes @asyncapi/cli@latest validate packages/api-contracts/asyncapi.yaml
+
+  # ------------------------------------------------------------------
+  # Cổng chặn số 3: design tokens không được sửa tay.
+  # ------------------------------------------------------------------
+  design-tokens:
+    name: Design tokens
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: File sinh ra phải khớp tokens.json
+        run: node tools/scripts/gen-tokens.js --check
+
+  # ------------------------------------------------------------------
+  # Cổng chặn số 4: VietQR — C# và TypeScript phải cho ra CÙNG một chuỗi.
+  # Lệch nhau nghĩa là một trong hai sinh mã QR bị ngân hàng từ chối.
+  # ------------------------------------------------------------------
+  vietqr:
+    name: VietQR golden vectors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+
+      - name: Bản tham chiếu Python
+        run: python tools/vietqr-reference/vietqr_reference.py
+
+      - name: Bản TypeScript (NinoCloud)
+        working-directory: apps/nino-cloud
+        run: |
+          npm ci
+          npm test
+
+      - name: Bản C# (NinoPOS)
+        working-directory: apps/nino-pos
+        run: |
+          dotnet restore
+          dotnet test --no-restore --verbosity normal
+
+  # ------------------------------------------------------------------
+  # Cổng chặn số 5: bản quyền — chưa cấp key được thì chưa bán được hàng.
+  # ------------------------------------------------------------------
+  licensing:
+    name: License generator
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install cryptography
+      - name: Sinh khoá, cấp key, xác thực (dùng khoá dùng-một-lần của CI)
+        working-directory: tools/license-generator
+        run: |
+          python ninotek_license.py genkeys
+          KEY=$(python ninotek_license.py issue \
+                  --machine-id CI-TEST-MACHINE-ID-0001 \
+                  --package PRO --years 1 --max-devices 5 | tail -2 | head -1)
+          python ninotek_license.py verify --key "$KEY" --machine-id CI-TEST-MACHINE-ID-0001
+          echo "Key cấp cho máy khác PHẢI bị từ chối:"
+          if python ninotek_license.py verify --key "$KEY" --machine-id MAY-KHAC-9999; then
+            echo "LỖI NGHIÊM TRỌNG: license dùng được trên máy khác"; exit 1
+          fi
+          echo "Đã chặn đúng."

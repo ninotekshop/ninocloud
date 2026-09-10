@@ -1,0 +1,65 @@
+# ===== .NET / NinoPOS =====
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+.vs/
+publish/
+apps/nino-pos/installer/Output/
+*.pdb
+
+# ===== Flutter / NinoOrder & NinoDash =====
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+*.iml
+.idea/
+ios/Pods/
+ios/.symlinks/
+android/.gradle/
+android/local.properties
+android/key.properties
+*.jks
+*.keystore
+symbols/
+
+# ===== Node / NinoCloud =====
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+npm-debug.log*
+yarn-error.log*
+coverage/
+
+# ===== Database =====
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+pgdata/
+
+# ===== BÍ MẬT — TUYỆT ĐỐI KHÔNG COMMIT =====
+# Private Key ký License. Lộ file này = toàn bộ bản quyền bị crack.
+tools/license-generator/keys/
+tools/license-admin/transactions.json
+tools/license-admin/smtp_settings.json
+tools/license-admin/revocations.json
+*_private.pem
+*.p12
+*.pfx
+# Khoá HMAC webhook ngân hàng, JWT secret, API key cổng thanh toán
+secrets/
+*.secret
+
+# ===== Hệ điều hành / IDE =====
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+*.tmp

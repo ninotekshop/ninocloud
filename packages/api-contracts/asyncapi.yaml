@@ -1,0 +1,408 @@
+asyncapi: 3.0.0
+
+info:
+  title: Ninotek F&B POS — WebSocket Events
+  version: 1.0.0
+  description: |
+    Hợp đồng cho toàn bộ kênh WebSocket của hệ thống Ninotek.
+
+    **Đây là nguồn sự thật duy nhất cho sự kiện real-time.** Mọi handler ở
+    NinoPOS (C#), NinoOrder/NinoDash (Dart) và NinoCloud (NestJS) đều phải khớp
+    với các schema dưới đây.
+
+    ## Quy ước chung cho mọi message
+
+    Mỗi message là một JSON object có 4 trường bắt buộc:
+
+    ```json
+    {
+      "event": "PAYMENT_SUCCESS",
+      "eventId": "3f2a...",
+      "sentAt": "2026-09-03T13:17:08+07:00",
+      "data": { }
+    }
+    ```
+
+    `eventId` là UUID v4 dùng để **khử trùng lặp**. Khi mạng Wi-Fi ở quán chập
+    chờn, client tự kết nối lại và server phát lại các sự kiện gần nhất — client
+    phải bỏ qua `eventId` đã xử lý. Nếu không, một lần mất sóng có thể làm máy
+    POS in bill hai lần hoặc mở két hai lần.
+
+    ## Kết nối lại
+
+    Mọi client dùng exponential backoff, trần 30 giây, cộng jitter ngẫu nhiên.
+    Riêng NinoOrder giữ nhịp cố định **3 giây** theo Master SRS, vì nhân viên
+    đứng tại bàn cần biết ngay khi nào gọi món được trở lại.
+
+defaultContentType: application/json
+
+servers:
+  lanPos:
+    host: '{posHost}:8080'
+    protocol: ws
+    description: |
+      WebSocket do NinoPOS tự host trong mạng LAN của quán.
+      Hoạt động bình thường khi **mất Internet** — đây là điều kiện sống còn
+      của kiến trúc Offline-First.
+    variables:
+      posHost:
+        default: 192.168.1.10
+        description: IP LAN của máy thu ngân, NinoOrder tự dò qua mDNS.
+
+  cloud:
+    host: api.ninotek.vn
+    protocol: wss
+    description: WebSocket Cloud cho NinoDash và luồng xác nhận thanh toán.
+
+channels:
+  lanKitchen:
+    address: /ws/lan/kitchen
+    servers: [{ $ref: '#/servers/lanPos' }]
+    title: Kênh bếp (KDS)
+    description: |
+      Hai chiều giữa NinoPOS, màn hình bếp và các tablet NinoOrder.
+      Khi nhân viên gửi món, bếp thấy ngay; khi bếp báo xong, tablet thấy ngay.
+    messages:
+      orderCreated: { $ref: '#/components/messages/OrderCreated' }
+      kitchenStatusChanged: { $ref: '#/components/messages/KitchenStatusChanged' }
+      orderItemCancelled: { $ref: '#/components/messages/OrderItemCancelled' }
+
+  lanTables:
+    address: /ws/lan/tables
+    servers: [{ $ref: '#/servers/lanPos' }]
+    title: Kênh sơ đồ bàn
+    description: |
+      Đẩy thay đổi trạng thái bàn tới mọi tablet đang mở màn hình sơ đồ bàn.
+      Nhờ kênh này, nhân viên thấy bàn đổi màu ngay mà không cần kéo để tải lại.
+    messages:
+      tableStatusChanged: { $ref: '#/components/messages/TableStatusChanged' }
+      tableLocked: { $ref: '#/components/messages/TableLocked' }
+
+  paymentsCloud:
+    address: /ws/payments?order_id={order_id}
+    servers: [{ $ref: '#/servers/cloud' }]
+    title: Kênh xác nhận thanh toán VietQR
+    description: |
+      NinoPOS mở kênh này ngay sau khi sinh mã VietQR, kèm query
+      `?order_id={ORDER_CODE}`.
+
+      Khi webhook ngân hàng báo về, Cloud phát `PAYMENT_SUCCESS` và máy POS tự
+      động: chuyển bill sang "Đã thanh toán" → mở két tiền → in hoá đơn. Thu
+      ngân không phải bấm "Xác nhận" thủ công.
+
+      **Kênh này KHÔNG được là đường xác nhận duy nhất.** Khi quán mất Internet,
+      WebSocket không tới được. NinoPOS phải luôn giữ nút "Xác nhận đã nhận
+      tiền" thủ công cho thu ngân — nếu không, mất mạng đồng nghĩa với không
+      chốt được bill nào.
+    parameters:
+      order_id:
+        description: Mã hoá đơn (`orders.order_code`), ví dụ NINOPOS100234
+    messages:
+      paymentSuccess: { $ref: '#/components/messages/PaymentSuccess' }
+      paymentExpired: { $ref: '#/components/messages/PaymentExpired' }
+
+  realtimeReports:
+    address: /ws/cloud/realtime-reports
+    servers: [{ $ref: '#/servers/cloud' }]
+    title: Kênh báo cáo real-time cho NinoDash
+    messages:
+      revenueUpdated: { $ref: '#/components/messages/RevenueUpdated' }
+      lowStockAlert: { $ref: '#/components/messages/LowStockAlert' }
+      suspiciousActivity: { $ref: '#/components/messages/SuspiciousActivity' }
+
+operations:
+  receiveOrderCreated:
+    action: receive
+    channel: { $ref: '#/channels/lanKitchen' }
+    summary: Bếp và thu ngân nhận đơn mới từ tablet
+    messages:
+      - $ref: '#/channels/lanKitchen/messages/orderCreated'
+
+  sendKitchenStatus:
+    action: send
+    channel: { $ref: '#/channels/lanKitchen' }
+    summary: Bếp báo trạng thái chế biến món
+    messages:
+      - $ref: '#/channels/lanKitchen/messages/kitchenStatusChanged'
+
+  receiveTableStatus:
+    action: receive
+    channel: { $ref: '#/channels/lanTables' }
+    summary: Tablet nhận cập nhật sơ đồ bàn
+    messages:
+      - $ref: '#/channels/lanTables/messages/tableStatusChanged'
+      - $ref: '#/channels/lanTables/messages/tableLocked'
+
+  receivePaymentSuccess:
+    action: receive
+    channel: { $ref: '#/channels/paymentsCloud' }
+    summary: NinoPOS nhận xác nhận thanh toán và tự chốt bill
+    messages:
+      - $ref: '#/channels/paymentsCloud/messages/paymentSuccess'
+      - $ref: '#/channels/paymentsCloud/messages/paymentExpired'
+
+  receiveDashboardUpdates:
+    action: receive
+    channel: { $ref: '#/channels/realtimeReports' }
+    summary: NinoDash nhận doanh thu và cảnh báo theo thời gian thực
+    messages:
+      - $ref: '#/channels/realtimeReports/messages/revenueUpdated'
+      - $ref: '#/channels/realtimeReports/messages/lowStockAlert'
+      - $ref: '#/channels/realtimeReports/messages/suspiciousActivity'
+
+components:
+  schemas:
+    Envelope:
+      type: object
+      required: [event, eventId, sentAt, data]
+      properties:
+        event:
+          type: string
+          description: Tên sự kiện, viết HOA_GACH_DUOI
+        eventId:
+          type: string
+          format: uuid
+          description: |
+            Khoá khử trùng lặp. Client PHẢI bỏ qua eventId đã xử lý — server
+            phát lại sự kiện gần nhất sau mỗi lần client kết nối lại.
+        sentAt:
+          type: string
+          format: date-time
+        data:
+          type: object
+
+  messages:
+    OrderCreated:
+      name: ORDER_CREATED
+      title: Đơn mới được tạo
+      summary: Tablet đã gửi món, cần in phiếu bếp
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - type: object
+            properties:
+              event: { const: ORDER_CREATED }
+              data:
+                type: object
+                required: [orderId, orderCode, items]
+                properties:
+                  orderId: { type: string, format: uuid }
+                  orderCode: { type: string, examples: [NINOPOS100234] }
+                  tableId: { type: string, format: uuid }
+                  tableName: { type: string, examples: ['Bàn 01'] }
+                  waiterName: { type: string }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        orderDetailId: { type: string, format: uuid }
+                        itemName: { type: string }
+                        quantity: { type: number }
+                        note: { type: string }
+                        printStation:
+                          type: string
+                          description: Quyết định phiếu này in ra máy in nào
+                          examples: [BAR, KITCHEN, GRILL]
+
+    KitchenStatusChanged:
+      name: KITCHEN_STATUS_CHANGED
+      title: Trạng thái chế biến món thay đổi
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - type: object
+            properties:
+              event: { const: KITCHEN_STATUS_CHANGED }
+              data:
+                type: object
+                required: [orderDetailId, kitchenStatus, rowVersion]
+                properties:
+                  orderId: { type: string, format: uuid }
+                  orderDetailId: { type: string, format: uuid }
+                  itemName: { type: string }
+                  kitchenStatus:
+                    type: string
+                    enum: [WAITING, COOKING, READY, SERVED, CANCELLED]
+                  rowVersion: { type: integer }
+
+    OrderItemCancelled:
+      name: ORDER_ITEM_CANCELLED
+      title: Món bị huỷ
+      description: Đồng thời ghi vào audit_logs để NinoDash cảnh báo huỷ món bất thường.
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - type: object
+            properties:
+              event: { const: ORDER_ITEM_CANCELLED }
+              data:
+                type: object
+                required: [orderDetailId, cancelledByUserId]
+                properties:
+                  orderId: { type: string, format: uuid }
+                  orderDetailId: { type: string, format: uuid }
+                  itemName: { type: string }
+                  cancelledByUserId: { type: string, format: uuid }
+                  cancelReason: { type: string }
+
+    TableStatusChanged:
+      name: TABLE_STATUS_CHANGED
+      title: Trạng thái bàn thay đổi
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - type: object
+            properties:
+              event: { const: TABLE_STATUS_CHANGED }
+              data:
+                type: object
+                required: [tableId, status, rowVersion]
+                properties:
+                  tableId: { type: string, format: uuid }
+                  tableName: { type: string }
+                  status:
+                    type: string
+                    enum: [EMPTY, OCCUPIED, RESERVED, BILLING, LOCKED]
+                  currentOrderId: { type: [string, 'null'], format: uuid }
+                  guestCount: { type: [integer, 'null'] }
+                  runningTotal: { type: [number, 'null'] }
+                  rowVersion: { type: integer }
+
+    TableLocked:
+      name: TABLE_LOCKED
+      title: Bàn bị một nhân viên chiếm quyền thao tác
+      description: |
+        Tablet của nhân viên khác phải làm mờ bàn này và hiện tên người đang
+        thao tác, thay vì để họ bấm vào rồi mới báo lỗi 409.
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - type: object
+            properties:
+              event: { const: TABLE_LOCKED }
+              data:
+                type: object
+                required: [tableId, lockedByUserId, lockedUntil]
+                properties:
+                  tableId: { type: string, format: uuid }
+                  lockedByUserId: { type: string, format: uuid }
+                  lockedByUserName: { type: string }
+                  lockedUntil: { type: string, format: date-time }
+
+    PaymentSuccess:
+      name: PAYMENT_SUCCESS
+      title: Thanh toán VietQR thành công
+      description: |
+        Nhận được sự kiện này, NinoPOS thực hiện tuần tự:
+        chuyển bill sang "Đã thanh toán" → mở két tiền → in hoá đơn.
+
+        ⚠️ Phải kiểm tra `eventId` trước khi hành động. Xử lý lại cùng một
+        eventId sẽ làm két mở hai lần và in trùng bill.
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - type: object
+            properties:
+              event: { const: PAYMENT_SUCCESS }
+              data:
+                type: object
+                required: [orderCode, paymentMethod, amountPaid, transactionRef]
+                properties:
+                  orderId: { type: string, format: uuid }
+                  orderCode: { type: string, examples: [NINOPOS100234] }
+                  paymentMethod: { type: string, const: VIETQR }
+                  amountPaid: { type: number, examples: [150000] }
+                  transactionRef:
+                    type: string
+                    examples: [FT2624490182]
+                    description: Mã giao dịch ngân hàng — dùng để đối soát cuối ngày
+                  gateway: { type: string, examples: [SePay, Casso] }
+                  paidAt: { type: string, format: date-time }
+                  message: { type: string, examples: ['Thanh toán VietQR thành công'] }
+
+    PaymentExpired:
+      name: PAYMENT_EXPIRED
+      title: Phiên VietQR hết hạn
+      description: Mặc định 15 phút. NinoPOS phải ẩn mã QR và cho phép sinh lại.
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - type: object
+            properties:
+              event: { const: PAYMENT_EXPIRED }
+              data:
+                type: object
+                required: [orderCode]
+                properties:
+                  orderId: { type: string, format: uuid }
+                  orderCode: { type: string }
+                  expiredAt: { type: string, format: date-time }
+
+    RevenueUpdated:
+      name: REVENUE_UPDATED
+      title: Doanh thu thay đổi
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - type: object
+            properties:
+              event: { const: REVENUE_UPDATED }
+              data:
+                type: object
+                required: [storeId, netRevenue, totalOrders]
+                properties:
+                  storeId: { type: string, format: uuid }
+                  netRevenue: { type: number }
+                  totalOrders: { type: integer }
+                  lastOrderCode: { type: string }
+                  lastOrderTotal: { type: number }
+                  changePercentVsYesterday: { type: number }
+
+    LowStockAlert:
+      name: LOW_STOCK_ALERT
+      title: Nguyên vật liệu sắp hết
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - type: object
+            properties:
+              event: { const: LOW_STOCK_ALERT }
+              data:
+                type: object
+                required: [ingredientId, name, stockQuantity, minStockAlert]
+                properties:
+                  storeId: { type: string, format: uuid }
+                  ingredientId: { type: string, format: uuid }
+                  name: { type: string, examples: ['Hạt cà phê Robusta'] }
+                  stockQuantity: { type: number }
+                  minStockAlert: { type: number }
+                  unit: { type: string, examples: [kg] }
+
+    SuspiciousActivity:
+      name: SUSPICIOUS_ACTIVITY
+      title: Thao tác bất thường của nhân viên
+      description: |
+        Nguồn cho khối cảnh báo đỏ trên NinoDash: huỷ món hoặc giảm giá vượt
+        ngưỡng trong một ca. Đây là tính năng chống thất thoát mà chủ quán
+        quan tâm nhất.
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/Envelope'
+          - type: object
+            properties:
+              event: { const: SUSPICIOUS_ACTIVITY }
+              data:
+                type: object
+                required: [action, userId, count]
+                properties:
+                  storeId: { type: string, format: uuid }
+                  shiftId: { type: string, format: uuid }
+                  userId: { type: string, format: uuid }
+                  userName: { type: string }
+                  action:
+                    type: string
+                    enum: [CANCEL_ITEM, APPLY_DISCOUNT, VOID_BILL]
+                  count: { type: integer }
+                  totalAmount: { type: number }
+                  thresholdExceeded: { type: string, examples: ['Huỷ trên 5 món trong một ca'] }

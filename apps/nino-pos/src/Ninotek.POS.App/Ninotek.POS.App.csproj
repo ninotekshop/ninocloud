@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableDefaultApplicationDefinition>true</EnableDefaultApplicationDefinition>
+    <AssemblyName>NinoPOS</AssemblyName>
+    <RootNamespace>Ninotek.POS.App</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Ninotek.POS.Core\Ninotek.POS.Core.csproj" />
+    <ProjectReference Include="..\Ninotek.POS.Data\Ninotek.POS.Data.csproj" />
+    <ProjectReference Include="..\Ninotek.POS.Hardware\Ninotek.POS.Hardware.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Themes\NinotekColors.xaml" />
+    <PackageReference Include="QRCoder" Version="1.6.0" />
+  </ItemGroup>
+</Project>

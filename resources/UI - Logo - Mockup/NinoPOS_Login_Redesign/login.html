@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NinoPOS - Đăng Nhập Hệ Thống</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="login-body">
+  <!-- Windows Title Bar -->
+  <div class="window-titlebar">
+    <div class="titlebar-drag-region">
+      <i class="fa-solid fa-cash-register brand-icon"></i>
+      <span class="app-name">NinoPOS</span>
+      <span class="app-version">v2.8 Enterprise | Đăng nhập hệ thống</span>
+    </div>
+    <div class="window-controls">
+      <button class="win-btn" title="Thu nhỏ"><i class="fa-solid fa-minus"></i></button>
+      <button class="win-btn" title="Phóng to"><i class="fa-regular fa-square"></i></button>
+      <button class="win-btn close-btn" title="Đóng"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div>
+
+  <!-- Login Container -->
+  <div class="login-wrapper">
+    <div class="login-card-container">
+      
+      <!-- Cột Trái: Brand Showcase & Trạng thái Trạm POS -->
+      <div class="login-brand-panel">
+        <div class="brand-showcase">
+          <div class="logo-box">
+            <div class="ninopos-logo-badge">
+              <img src="NinoPOS_logo_nobkg.png" class="logo-image" alt="NinoPOS">
+            </div>
+            <div class="brand-title">
+              <h1>Nino<span>POS</span></h1>
+              <p class="brand-subtitle">BÁN HÀNG & THU NGÂN</p>
+            </div>
+          </div>
+
+          <div class="brand-highlights">
+            <div class="highlight-item">
+              <i class="fa-solid fa-bolt-lightning"></i>
+              <span>Offline-First: Bán hàng siêu tốc không gián đoạn</span>
+            </div>
+            <div class="highlight-item">
+              <i class="fa-solid fa-qrcode"></i>
+              <span>VietQR Động NAPAS 247: Tự động khớp bill tức thì</span>
+            </div>
+            <div class="highlight-item">
+              <i class="fa-solid fa-print"></i>
+              <span>Kết nối trực tiếp máy in K80 & Két thu ngân RJ11</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="terminal-footer">
+          <div class="terminal-status">
+            <span class="status-indicator-live"></span>
+            <span>Trạm POS: <strong>QUY NHON - POS 01</strong> (Online)</span>
+          </div>
+          <small class="engine-ver">NINOTEK Engine v2.8.4 • Build 2026</small>
+        </div>
+      </div>
+
+      <!-- Cột Phải: Form Đăng Nhập Đa Phương Thức -->
+      <div class="login-form-panel">
+        <div class="form-header">
+          <h2>Đăng Nhập Phiên Làm Việc</h2>
+          <p>Chọn phương thức truy cập vào trạm thu ngân</p>
+        </div>
+
+        <!-- Tab chuyển đổi phương thức -->
+        <div class="login-tabs">
+          <button class="login-tab-btn active" id="tabPin" onclick="switchLoginMode('pin')">
+            <i class="fa-solid fa-calculator"></i> Mã PIN Nhanh
+          </button>
+          <button class="login-tab-btn" id="tabAccount" onclick="switchLoginMode('account')">
+            <i class="fa-solid fa-circle-user"></i> Tài Khoản & Mật Khẩu
+          </button>
+        </div>
+
+        <!-- 1. CHẾ ĐỘ MÃ PIN CA NHANH (Bàn phím cảm ứng ảo cho POS) -->
+        <div class="login-subview active" id="viewPin">
+          <!-- Chọn tài khoản nhanh -->
+          <div class="quick-user-selector">
+            <div class="user-avatar-pill active" onclick="selectQuickUser('admin', 'Lê Trung Hiếu (Admin)')">
+              <div class="pill-avatar bg-admin">H</div>
+              <div class="pill-text">
+                <strong>Admin</strong>
+                <small>Lê Trung Hiếu</small>
+              </div>
+            </div>
+            <div class="user-avatar-pill" onclick="selectQuickUser('cashier', 'Trần Thị Thu Ngân')">
+              <div class="pill-avatar bg-cashier">N</div>
+              <div class="pill-text">
+                <strong>Thu Ngân</strong>
+                <small>Thu Ngân 01</small>
+              </div>
+            </div>
+            <div class="user-avatar-pill" onclick="selectQuickUser('waiter', 'Lê Văn Phục Vụ')">
+              <div class="pill-avatar bg-waiter">P</div>
+              <div class="pill-text">
+                <strong>Phục Vụ</strong>
+                <small>Bàn Sân Vườn</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hiển thị 4-6 chấm PIN -->
+          <div class="pin-display-wrapper">
+            <span class="pin-user-label" id="currentPinUser">Đang đăng nhập: <strong>Lê Trung Hiếu (Admin)</strong></span>
+            <div class="pin-dots-container" id="pinDots">
+              <span class="pin-dot"></span>
+              <span class="pin-dot"></span>
+              <span class="pin-dot"></span>
+              <span class="pin-dot"></span>
+            </div>
+            <input type="password" id="hiddenPinInput" maxlength="6" autofocus oninput="handlePinInput(this.value)">
+          </div>
+
+          <!-- Numpad cảm ứng ảo trực quan -->
+          <div class="touch-numpad">
+            <button class="numpad-btn" onclick="pressNumpad('1')">1</button>
+            <button class="numpad-btn" onclick="pressNumpad('2')">2</button>
+            <button class="numpad-btn" onclick="pressNumpad('3')">3</button>
+            <button class="numpad-btn" onclick="pressNumpad('4')">4</button>
+            <button class="numpad-btn" onclick="pressNumpad('5')">5</button>
+            <button class="numpad-btn" onclick="pressNumpad('6')">6</button>
+            <button class="numpad-btn" onclick="pressNumpad('7')">7</button>
+            <button class="numpad-btn" onclick="pressNumpad('8')">8</button>
+            <button class="numpad-btn" onclick="pressNumpad('9')">9</button>
+            <button class="numpad-btn btn-clear" onclick="clearPin()"><i class="fa-solid fa-rotate-left"></i></button>
+            <button class="numpad-btn" onclick="pressNumpad('0')">0</button>
+            <button class="numpad-btn btn-back" onclick="backspacePin()"><i class="fa-solid fa-delete-left"></i></button>
+          </div>
+        </div>
+
+        <!-- 2. CHẾ ĐỘ TÀI KHOẢN & MẬT KHẨU -->
+        <div class="login-subview" id="viewAccount">
+          <form id="accountLoginForm" onsubmit="handleAccountLogin(event)">
+            <div class="form-group-modern">
+              <label>Tên đăng nhập</label>
+              <div class="input-with-icon">
+                <i class="fa-regular fa-user"></i>
+                <input type="text" id="usernameInput" value="admin" placeholder="Nhập tên đăng nhập..." required>
+              </div>
+            </div>
+
+            <div class="form-group-modern">
+              <label>Mật khẩu</label>
+              <div class="input-with-icon">
+                <i class="fa-solid fa-lock"></i>
+                <input type="password" id="passwordInput" placeholder="Nhập mật khẩu..." required>
+                <button type="button" class="btn-toggle-eye" onclick="togglePasswordVisibility()"><i class="fa-regular fa-eye" id="eyeIcon"></i></button>
+              </div>
+            </div>
+
+            <div class="form-options">
+              <label class="chk-container">
+                <input type="checkbox" checked>
+                <span class="checkmark"></span>
+                Ghi nhớ ca trên máy này
+              </label>
+              <a href="javascript:void(0)" onclick="showToast('Vui lòng liên hệ Admin để khôi phục mã PIN / Mật khẩu')" class="link-forgot">Quên mật khẩu?</a>
+            </div>
+
+            <button type="submit" class="btn-login-submit">
+              <span>ĐĂNG NHẬP BÁN HÀNG</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </form>
+
+          <div class="login-preset-hint">
+            <span>Tài khoản kiểm thử: <strong>admin</strong> | <strong>ninotek@123</strong> (PIN: <strong>1234</strong>)</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script src="login.js"></script>
+</body>
+</html>

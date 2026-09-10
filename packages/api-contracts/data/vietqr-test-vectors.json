@@ -1,0 +1,346 @@
+{
+  "$comment": "Golden test vectors cho VietQR EMVCo. MOI implementation (C# NinoPOS, TypeScript NinoCloud, Dart NinoOrder) BAT BUOC pass 100% file nay.",
+  "$spec": "EMVCo MPM + NAPAS VietQR/IBFT",
+  "$verification": "Sinh boi tools/vietqr-reference/vietqr_reference.py, doi chung voi thu vien doc lap 'vietnam-qr-pay' (npm, MIT) tren 5009 ca ngau nhien: 0 lech.",
+  "$generatedAt": "2026-09-03",
+  "crcAlgorithm": {
+    "name": "CRC-16/CCITT-FALSE",
+    "poly": "0x1021",
+    "init": "0xFFFF",
+    "refIn": false,
+    "refOut": false,
+    "xorOut": "0x0000",
+    "checkValueOf123456789": "29B1",
+    "$warning": "KHONG dung CRC-16/XMODEM (init=0x0000). Day la loi tich hop VietQR pho bien nhat."
+  },
+  "limits": {
+    "maxPurposeLength": 95,
+    "recommendedPurposeLength": 50,
+    "$note": "Tag 62 toi da 99 ky tu, tag 08 ben trong ton 4 ky tu header => noi dung chuyen khoan toi da 95. Nhieu ngan hang con cat quanh moc 50 khi bao webhook, nen ma hoa don PHAI nam o DAU chuoi."
+  },
+  "knownBadExample": {
+    "$source": "resources/workflow/4. Tich hop VietQR.md",
+    "payload": "00020101021238570010A00000072701270006970436011001234567890208QRIBFTTA530370454061500005802VN62170813NINOPOS1002346304A1B2",
+    "$defects": [
+      "Tag 38 khai do dai 57 nhung gia tri thuc chi 54 ky tu",
+      "Tag 38.01 khai do dai 27 nhung gia tri thuc chi 24 ky tu",
+      "CRC 'A1B2' la chuoi gia; gia tri dung la '8507'"
+    ],
+    "correctPayload": "00020101021238540010A00000072701240006970436011001234567890208QRIBFTTA530370454061500005802VN62170813NINOPOS10023463048507",
+    "$verdict": "Chuoi trong tai lieu bi MOI app ngan hang tu choi. KHONG dung lam test vector."
+  },
+  "vectors": [
+    {
+      "name": "basic_dine_in",
+      "note": "Ca ban nhat: Vietcombank, don 150k",
+      "input": {
+        "acqId": "970436",
+        "accountNo": "0123456789",
+        "amount": 150000,
+        "addInfo": "NINOPOS100234"
+      },
+      "expectedPayload": "00020101021238540010A00000072701240006970436011001234567890208QRIBFTTA530370454061500005802VN62170813NINOPOS10023463048507",
+      "expectedCrc": "8507",
+      "expectedLength": 122,
+      "expectedDecodedAddInfo": "NINOPOS100234"
+    },
+    {
+      "name": "small_amount",
+      "note": "So tien nho nhat thuc te",
+      "input": {
+        "acqId": "970436",
+        "accountNo": "0123456789",
+        "amount": 1000,
+        "addInfo": "NINOPOS100001"
+      },
+      "expectedPayload": "00020101021238540010A00000072701240006970436011001234567890208QRIBFTTA5303704540410005802VN62170813NINOPOS1000016304EB8B",
+      "expectedCrc": "EB8B",
+      "expectedLength": 120,
+      "expectedDecodedAddInfo": "NINOPOS100001"
+    },
+    {
+      "name": "typical_coffee",
+      "note": "MBBank, don ca phe 99k",
+      "input": {
+        "acqId": "970422",
+        "accountNo": "9704229201234567",
+        "amount": 99000,
+        "addInfo": "QN01100045"
+      },
+      "expectedPayload": "00020101021238600010A00000072701300006970422011697042292012345670208QRIBFTTA53037045405990005802VN62140810QN011000456304B828",
+      "expectedCrc": "B828",
+      "expectedLength": 124,
+      "expectedDecodedAddInfo": "QN01100045"
+    },
+    {
+      "name": "max_amount",
+      "note": "Tran so tien 9.999.999.999d",
+      "input": {
+        "acqId": "970415",
+        "accountNo": "113000000001",
+        "amount": 9999999999,
+        "addInfo": "NINOPOS999999"
+      },
+      "expectedPayload": "00020101021238560010A0000007270126000697041501121130000000010208QRIBFTTA5303704541099999999995802VN62170813NINOPOS999999630472AE",
+      "expectedCrc": "72AE",
+      "expectedLength": 128,
+      "expectedDecodedAddInfo": "NINOPOS999999"
+    },
+    {
+      "name": "static_no_amount",
+      "note": "QR TINH - khong co tag 54",
+      "input": {
+        "acqId": "970436",
+        "accountNo": "0123456789",
+        "amount": null,
+        "addInfo": "NINOPOS100234"
+      },
+      "expectedPayload": "00020101021138540010A00000072701240006970436011001234567890208QRIBFTTA53037045802VN62170813NINOPOS1002346304E576",
+      "expectedCrc": "E576",
+      "expectedLength": 112,
+      "expectedDecodedAddInfo": "NINOPOS100234"
+    },
+    {
+      "name": "static_no_addinfo",
+      "note": "QR tinh toi gian nhat",
+      "input": {
+        "acqId": "970418",
+        "accountNo": "31410001234567",
+        "amount": null,
+        "addInfo": ""
+      },
+      "expectedPayload": "00020101021138580010A000000727012800069704180114314100012345670208QRIBFTTA53037045802VN6304C6F9",
+      "expectedCrc": "C6F9",
+      "expectedLength": 95,
+      "expectedDecodedAddInfo": ""
+    },
+    {
+      "name": "long_account",
+      "note": "Techcombank so TK 16 chu so",
+      "input": {
+        "acqId": "970407",
+        "accountNo": "1903123456789012",
+        "amount": 250000,
+        "addInfo": "NINOPOS100777"
+      },
+      "expectedPayload": "00020101021238600010A00000072701300006970407011619031234567890120208QRIBFTTA530370454062500005802VN62170813NINOPOS100777630439DE",
+      "expectedCrc": "39DE",
+      "expectedLength": 128,
+      "expectedDecodedAddInfo": "NINOPOS100777"
+    },
+    {
+      "name": "short_account",
+      "note": "Agribank so TK ngan",
+      "input": {
+        "acqId": "970405",
+        "accountNo": "1234567",
+        "amount": 50000,
+        "addInfo": "NINOPOS100002"
+      },
+      "expectedPayload": "00020101021238510010A00000072701210006970405010712345670208QRIBFTTA53037045405500005802VN62170813NINOPOS1000026304F199",
+      "expectedCrc": "F199",
+      "expectedLength": 118,
+      "expectedDecodedAddInfo": "NINOPOS100002"
+    },
+    {
+      "name": "ewallet_momo",
+      "note": "Vi MoMo",
+      "input": {
+        "acqId": "971025",
+        "accountNo": "0901234567",
+        "amount": 35000,
+        "addInfo": "NINOPOS100088"
+      },
+      "expectedPayload": "00020101021238540010A00000072701240006971025011009012345670208QRIBFTTA53037045405350005802VN62170813NINOPOS10008863042FD2",
+      "expectedCrc": "2FD2",
+      "expectedLength": 121,
+      "expectedDecodedAddInfo": "NINOPOS100088"
+    },
+    {
+      "name": "digital_cake",
+      "note": "Ngan hang so CAKE (BIN khong bat dau 9704)",
+      "input": {
+        "acqId": "546034",
+        "accountNo": "0987654321",
+        "amount": 120000,
+        "addInfo": "NINOPOS100099"
+      },
+      "expectedPayload": "00020101021238540010A00000072701240006546034011009876543210208QRIBFTTA530370454061200005802VN62170813NINOPOS1000996304EB7C",
+      "expectedCrc": "EB7C",
+      "expectedLength": 122,
+      "expectedDecodedAddInfo": "NINOPOS100099"
+    },
+    {
+      "name": "foreign_cimb",
+      "note": "CIMB Viet Nam",
+      "input": {
+        "acqId": "422589",
+        "accountNo": "1234567890",
+        "amount": 75000,
+        "addInfo": "NINOPOS100100"
+      },
+      "expectedPayload": "00020101021238540010A00000072701240006422589011012345678900208QRIBFTTA53037045405750005802VN62170813NINOPOS10010063044B7A",
+      "expectedCrc": "4B7A",
+      "expectedLength": 121,
+      "expectedDecodedAddInfo": "NINOPOS100100"
+    },
+    {
+      "name": "addinfo_max_len",
+      "note": "Noi dung dai toi da 95 ky tu (tran ky thuat)",
+      "input": {
+        "acqId": "970436",
+        "accountNo": "0123456789",
+        "amount": 180000,
+        "addInfo": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      },
+      "expectedPayload": "00020101021238540010A00000072701240006970436011001234567890208QRIBFTTA530370454061800005802VN62990895AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA630471F5",
+      "expectedCrc": "71F5",
+      "expectedLength": 204,
+      "expectedDecodedAddInfo": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    {
+      "name": "addinfo_overflow",
+      "note": "Noi dung 200 ky tu -> PHAI bi cat con 95",
+      "input": {
+        "acqId": "970436",
+        "accountNo": "0123456789",
+        "amount": 180000,
+        "addInfo": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+      },
+      "expectedPayload": "00020101021238540010A00000072701240006970436011001234567890208QRIBFTTA530370454061800005802VN62990895BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB630434CD",
+      "expectedCrc": "34CD",
+      "expectedLength": 204,
+      "expectedDecodedAddInfo": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+    },
+    {
+      "name": "addinfo_vietnamese",
+      "note": "Co dau tieng Viet -> phai bo dau",
+      "input": {
+        "acqId": "970436",
+        "accountNo": "0123456789",
+        "amount": 45000,
+        "addInfo": "Thanh toán hoá đơn Bàn 01 — ít đường"
+      },
+      "expectedPayload": "00020101021238540010A00000072701240006970436011001234567890208QRIBFTTA53037045405450005802VN62380834THANH TOAN HOA DON BAN 01 IT DUONG63046F0E",
+      "expectedCrc": "6F0E",
+      "expectedLength": 142,
+      "expectedDecodedAddInfo": "THANH TOAN HOA DON BAN 01 IT DUONG"
+    },
+    {
+      "name": "addinfo_special_char",
+      "note": "Ky tu dac biet -> phai loc thanh khoang trang",
+      "input": {
+        "acqId": "970436",
+        "accountNo": "0123456789",
+        "amount": 60000,
+        "addInfo": "NINOPOS-100234/QN#01"
+      },
+      "expectedPayload": "00020101021238540010A00000072701240006970436011001234567890208QRIBFTTA53037045405600005802VN62240820NINOPOS 100234 QN 016304B4FA",
+      "expectedCrc": "B4FA",
+      "expectedLength": 128,
+      "expectedDecodedAddInfo": "NINOPOS 100234 QN 01"
+    }
+  ],
+  "invalidInputs": [
+    {
+      "name": "acqid_too_short",
+      "input": {
+        "acqId": "9704",
+        "accountNo": "0123456789",
+        "amount": 150000,
+        "addInfo": "X"
+      },
+      "expectedError": "acqId phai la 6 chu so"
+    },
+    {
+      "name": "acqid_not_numeric",
+      "input": {
+        "acqId": "97043X",
+        "accountNo": "0123456789",
+        "amount": 150000,
+        "addInfo": "X"
+      },
+      "expectedError": "acqId phai la 6 chu so"
+    },
+    {
+      "name": "account_empty",
+      "input": {
+        "acqId": "970436",
+        "accountNo": "",
+        "amount": 150000,
+        "addInfo": "X"
+      },
+      "expectedError": "accountNo phai gom 1-19 ky tu"
+    },
+    {
+      "name": "account_too_long",
+      "input": {
+        "acqId": "970436",
+        "accountNo": "11111111111111111111",
+        "amount": 150000,
+        "addInfo": "X"
+      },
+      "expectedError": "accountNo phai gom 1-19 ky tu"
+    },
+    {
+      "name": "amount_zero",
+      "input": {
+        "acqId": "970436",
+        "accountNo": "0123456789",
+        "amount": 0,
+        "addInfo": "X"
+      },
+      "expectedError": "amount phai lon hon 0"
+    },
+    {
+      "name": "amount_negative",
+      "input": {
+        "acqId": "970436",
+        "accountNo": "0123456789",
+        "amount": -1000,
+        "addInfo": "X"
+      },
+      "expectedError": "amount phai lon hon 0"
+    },
+    {
+      "name": "amount_overflow",
+      "input": {
+        "acqId": "970436",
+        "accountNo": "0123456789",
+        "amount": 10000000000,
+        "addInfo": "X"
+      },
+      "expectedError": "amount vuot tran"
+    }
+  ],
+  "webhookContentParsing": {
+    "$note": "Ngan hang CHEN THEM chu vao noi dung chuyen khoan. Webhook phai do bang regex, KHONG so sanh ==.",
+    "regex": "NINOPOS\\d+",
+    "cases": [
+      {
+        "content": "NINOPOS100234 CHUYEN KHOAN",
+        "expected": "NINOPOS100234"
+      },
+      {
+        "content": "MBVCB.9876543210.NINOPOS100234.CT tu 0123456789",
+        "expected": "NINOPOS100234"
+      },
+      {
+        "content": "ninopos100234 thanh toan",
+        "expected": "NINOPOS100234"
+      },
+      {
+        "content": "Thanh toan don NINOPOS100999 tai Ninotek Coffee",
+        "expected": "NINOPOS100999"
+      },
+      {
+        "content": "CK khong co ma don hang",
+        "expected": null
+      },
+      {
+        "content": "",
+        "expected": null
+      }
+    ]
+  }
+}

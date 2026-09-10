@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <!-- Kestrel tự host ngay trong tiến trình NinoPOS.exe.
+         KHÔNG cần IIS hay web server riêng — máy POS ở quán không có ai
+         quản trị hệ thống, mọi thứ phải nằm gọn trong một bộ cài. -->
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Ninotek.POS.Core\Ninotek.POS.Core.csproj" />
+    <ProjectReference Include="..\Ninotek.POS.Data\Ninotek.POS.Data.csproj" />
+  </ItemGroup>
+</Project>

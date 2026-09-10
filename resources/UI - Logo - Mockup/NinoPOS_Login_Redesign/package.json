@@ -1,0 +1,18 @@
+{
+  "name": "ninopos-desktop",
+  "version": "2.8.0",
+  "description": "NinoPOS - Hệ Thống Quản Lý Tính Tiền F&B Toàn Diện",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "node -e \"require('png-to-ico')('NinoPOS_logo_nobkg.png').then((icon) => require('fs').writeFileSync('NinoPOS_logo_nobkg.ico', icon))\" && electron-packager . NinoPOS --platform=win32 --arch=x64 --out=dist --overwrite --icon=NinoPOS_logo_nobkg.ico --extra-resource=../../../packages/api-contracts/data/napas-bank-bins.json"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-packager": "^17.1.2",
+    "png-to-ico": "^2.1.8",
+    "better-sqlite3": "^11.8.1",
+    "xlsx": "^0.18.5",
+    "qrcode": "^1.5.4"
+  }
+}

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NinoPOS - Công cụ kỹ thuật viên</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="shell">
+    <header><img src="../../apps/nino-pos-electron/assets/ninopos-logo.png" alt="NinoPOS"><div><h1>Công cụ kỹ thuật viên</h1><p>Khôi phục tài khoản an toàn, không xem mật khẩu</p></div></header>
+    <section id="authPanel" class="card">
+      <h2>Xác thực kỹ thuật viên</h2>
+      <p>Nhập khóa kỹ thuật viên đã được cấu hình trên máy hỗ trợ.</p>
+      <form id="authForm"><input id="technicianKey" type="password" placeholder="Khóa kỹ thuật viên" autocomplete="off" required><button>Xác thực</button></form>
+      <p id="authMessage" class="message"></p>
+    </section>
+    <section id="toolPanel" class="card" hidden>
+      <div class="toolbar"><div><h2>Tài khoản NinoPOS</h2><p>Chỉ hiển thị thông tin nhận diện; mật khẩu không thể xem hoặc khôi phục.</p></div><button id="generateButton">Tạo mã reset Admin</button></div>
+      <div id="recoveryBox" class="recovery" hidden><strong>Mã reset dùng một lần</strong><code id="recoveryCode"></code><small>Mã hết hạn sau 15 phút và nhập tại nút “Quên mật khẩu Admin?” trên màn hình đăng nhập.</small><button id="copyButton">Sao chép mã</button></div>
+      <table><thead><tr><th>Họ tên</th><th>Tài khoản</th><th>Vai trò</th><th>Trạng thái</th><th>Ngày tạo</th></tr></thead><tbody id="usersBody"></tbody></table>
+      <p id="toolMessage" class="message"></p>
+    </section>
+  </main>
+  <script src="renderer.js"></script>
+</body>
+</html>

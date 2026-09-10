@@ -1,0 +1,67 @@
+{
+  "name": "ninopos-desktop",
+  "version": "2.4.0",
+  "description": "Phần mềm Quản lý Tính Tiền Nhà Hàng, Quán Nhậu, Cafe NinoPOS",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "rebuild:native": "electron-rebuild -f -w better-sqlite3",
+    "build:win": "npm run rebuild:native && electron-packager . NinoPOS --platform=win32 --arch=x64 --out=release --overwrite --icon=assets/ninopos-logo.ico --extra-resource=../../packages/api-contracts/data/napas-bank-bins.json",
+    "dist:win": "npm run rebuild:native && electron-builder --win nsis portable"
+  },
+  "author": "NINOTEK Technology & Solution",
+  "license": "Commercial",
+  "build": {
+    "appId": "com.ninotek.ninopos",
+    "productName": "NinoPOS",
+    "directories": {
+      "output": "dist"
+    },
+    "icon": "assets/ninopos-logo.ico",
+    "win": {
+      "icon": "assets/ninopos-logo.ico",
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NinoPOS"
+    },
+    "extraResources": [
+      "../../packages/api-contracts/data/napas-bank-bins.json"
+    ],
+    "files": [
+      "**/*",
+      "!release/**/*",
+      "!dist/**/*",
+      "!NinoPOS-win32-x64/**/*",
+      "!NinoPOS-UI-win32-x64/**/*"
+    ]
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "qrcode": "^1.5.4",
+    "ws": "^8.21.3",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^26.15.3",
+    "electron-packager": "^17.1.2",
+    "electron-rebuild": "^3.2.9"
+  },
+  "allowScripts": {
+    "electron@28.3.3": true,
+    "better-sqlite3@11.10.0": true,
+    "lzma-native@8.0.6": true,
+    "xlsx@0.18.5": true,
+    "qrcode@1.5.4": true
+  }
+}
