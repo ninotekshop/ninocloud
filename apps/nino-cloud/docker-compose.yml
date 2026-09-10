@@ -1,0 +1,14 @@
+# =====================================================================
+#  NINOTEK CLOUD - Production Docker Compose for Hostinger VPS
+# =====================================================================
+version: '3.8'
+
+services:
+  ninocloud:
+    build: .
+    container_name: ninotek-cloud-api
+    restart: always
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - .env.cloud
