@@ -30,6 +30,22 @@ export class VietQrWebhookDto {
   @IsIn(['SUCCESS', 'FAILED'])
   status!: 'SUCCESS' | 'FAILED';
 
-  @IsOptional() @IsString()
-  timestamp?: string;
+  @IsOptional()
+  @IsString()
+  transactionDate?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  accountNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  referenceCode?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  description?: string;
 }
